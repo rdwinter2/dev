@@ -19,7 +19,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
       * [Set GitLab root password](#set-gitlab-root-password)
       * [gcloud CLI](#gcloud-cli)
 
-<!-- Added by: rdwinter2, at: Sun Feb  7 05:52:47 CST 2021 -->
+<!-- Added by: rdwinter2, at: Sun Feb  7 06:22:56 CST 2021 -->
 
 <!--te-->
 
@@ -318,8 +318,25 @@ secrets/gcloud.sh
 ssh instance-1 'bash -s' <<'ENDSSH'
 curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
 ENDSSH
+scp -r ~/.certs instance-1:~/dev/secrets
 
 
+cd ~/dev
+cat <<-EOT > secrets/password
+$(cat ~/.certs/intermediateCA_password)
+EOT
+cat <<-EOT > secrets/intermediate_ca.key
+$(cat ~/.certs/intermediate_ca.key)
+EOT
+cat <<-EOT > certs/root_ca.crt
+$(cat ~/.certs/root_ca.crt)
+EOT
+cat <<-EOT > certs/intermediate_ca.crt
+$(cat ~/.certs/intermediate_ca.crt)
+EOT
+sudo cp certs/root_ca.crt /usr/local/share/ca-certificates/root_ca.crt
+sudo cp certs/intermediate_ca.crt /usr/local/share/ca-certificates/intermediate_ca.crt
+sudo /usr/sbin/update-ca-certificates
 
 gcloud compute instances describe instance-1
 
