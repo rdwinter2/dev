@@ -14,3 +14,9 @@ checkcertdate() {
 chktlsdate() {
   echo | openssl s_client -servername $1 -connect $1:443 | openssl x509 -noout -dates
 }
+
+# kubernetes set namespace
+kns() {
+    namespace=$1
+    kubectl config set-context --current --namespace=$1
+}

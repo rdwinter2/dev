@@ -121,7 +121,14 @@ istioctl proxy-config clusters --file $t
 istioctl proxy-config bootstrap --file $t
 istioctl proxy-config secret --file $t
 
-setns istio-system
+
+kns() {
+    namespace=$1
+    kubectl config set-context --current --namespace=$1
+}
+
+
+kns istio-system
 kubectl apply -f /opt/istio/samples/addons
 ```
 

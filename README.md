@@ -19,7 +19,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
       * [Set GitLab root password](#set-gitlab-root-password)
       * [gcloud CLI](#gcloud-cli)
 
-<!-- Added by: rdwinter2, at: Sun Feb  7 06:48:20 CST 2021 -->
+<!-- Added by: rdwinter2, at: Sun Feb  7 08:40:34 CST 2021 -->
 
 <!--te-->
 
@@ -330,9 +330,16 @@ cp ~/.certs/intermediate_ca.crt ~/dev/certs/intermediate_ca.crt
 sudo cp certs/root_ca.crt /usr/local/share/ca-certificates/root_ca.crt
 sudo cp certs/intermediate_ca.crt /usr/local/share/ca-certificates/intermediate_ca.crt
 sudo /usr/sbin/update-ca-certificates
+newgrp docker
+docker-compose -f docker-compose-git-sync.yml up -d
+sleep 10
+docker-compose up -d
 ENDSSH
 
-
+kns() {
+    namespace=$1
+    kubectl config set-context --current --namespace=$1
+}
 
 gcloud compute instances describe instance-1
 
