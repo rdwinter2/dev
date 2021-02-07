@@ -79,7 +79,7 @@ sudo install --mode=755 --owner=root ./kubectl /usr/local/bin
 curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 curl -fsSL https://github.com/jenkins-x/jx-cli/releases/download/$(curl -s https://api.github.com/repos/jenkins-x/jx-cli/releases/latest | jq '.tag_name' | sed 's/"//g')/jx-cli-linux-amd64.tar.gz | tar xzv 
 sudo install --mode=755 --owner=root ./jx /usr/local/bin
-curl -fsSL -o ./kind https://kind.sigs.k8s.io/dl/v0.9.0/kind-linux-amd64
+curl -fsSL -o ./kind https://kind.sigs.k8s.io/dl/v0.10.0/kind-linux-amd64
 sudo install --mode=755 --owner=root ./kind /usr/local/bin
 curl -fsSL https://github.com/derailed/k9s/releases/download/v0.24.2/k9s_Linux_x86_64.tar.gz | tar xzf - 
 sudo install --mode=755 --owner=root ./k9s /usr/local/bin

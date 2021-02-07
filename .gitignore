@@ -1,9 +1,9 @@
 README.md.*
 certs/*
 !certs/README.md
-.env
 secrets/*
 !secrets/README.md
 logs/*
 !logs/README.md
 git-sync
+NUL

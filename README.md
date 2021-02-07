@@ -19,7 +19,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
       * [Set GitLab root password](#set-gitlab-root-password)
       * [gcloud CLI](#gcloud-cli)
 
-<!-- Added by: rdwinter2, at: Sun Feb  7 06:22:56 CST 2021 -->
+<!-- Added by: rdwinter2, at: Sun Feb  7 06:48:20 CST 2021 -->
 
 <!--te-->
 
@@ -316,27 +316,23 @@ gcloud compute instances create instance-1 \
 
 secrets/gcloud.sh 
 ssh instance-1 'bash -s' <<'ENDSSH'
-curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
+mkdir -p ~/.certs
 ENDSSH
-scp -r ~/.certs instance-1:~/dev/secrets
-
-
-cd ~/dev
-cat <<-EOT > secrets/password
-$(cat ~/.certs/intermediateCA_password)
-EOT
-cat <<-EOT > secrets/intermediate_ca.key
-$(cat ~/.certs/intermediate_ca.key)
-EOT
-cat <<-EOT > certs/root_ca.crt
-$(cat ~/.certs/root_ca.crt)
-EOT
-cat <<-EOT > certs/intermediate_ca.crt
-$(cat ~/.certs/intermediate_ca.crt)
-EOT
+scp ~/.certs/*.crt instance-1:~/.certs
+scp ~/.certs/intermediateCA_password instance-1:~/.certs
+scp ~/.certs/intermediate_ca.key instance-1:~/.certs
+ssh instance-1 'bash -s' <<'ENDSSH'
+curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
+cp ~/.certs/intermediateCA_password ~/dev/secrets/password
+cp ~/.certs/intermediate_ca.key ~/dev/secrets/intermediate_ca.key
+cp ~/.certs/root_ca.crt ~/dev/certs/root_ca.crt
+cp ~/.certs/intermediate_ca.crt ~/dev/certs/intermediate_ca.crt
 sudo cp certs/root_ca.crt /usr/local/share/ca-certificates/root_ca.crt
 sudo cp certs/intermediate_ca.crt /usr/local/share/ca-certificates/intermediate_ca.crt
 sudo /usr/sbin/update-ca-certificates
+ENDSSH
+
+
 
 gcloud compute instances describe instance-1
 
