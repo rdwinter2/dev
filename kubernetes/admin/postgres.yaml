@@ -1,0 +1,69 @@
+
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+   name: px-postgres-pvc
+   annotations:
+     volume.beta.kubernetes.io/storage-class: px-repl3-sc
+spec:
+   accessModes:
+     - ReadWriteOnce
+   resources:
+     requests:
+       storage: 1Gi
+
+$ echo postgres123 > password.txt
+$ tr -d '\n' .strippedpassword.txt && mv .strippedpassword.txt password.txt
+$ kubectl create secret generic postgres-pass --from-file=password.txt
+secret "postgres-pass" created
+ 
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      schedulerName: stork
+      containers:
+      - name: postgres
+        image: postgres:9.5
+        imagePullPolicy: "Always"
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          value: pgbench
+        - name: PGUSER
+          value: pgbench
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-pass
+              key: password.txt
+        - name: PGBENCH_PASSWORD
+          value: superpostgres
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: postgredb
+      volumes:
+      - name: postgredb
+        persistentVolumeClaim:
+          claimName: px-postgres-pvc
+---
+# https://portworx.com/run-ha-postgresql-rancher-kubernetes-engine/

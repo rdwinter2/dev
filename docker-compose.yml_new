@@ -1,0 +1,516 @@
+version: "3.8"
+
+services:
+  traefik:
+    container_name: traefik
+    hostname: ${TRAEFIK_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/library/traefik:${TRAEFIK_TAG}@sha256:${TRAEFIK_DIGEST}
+    depends_on:
+      - step-ca
+      - coredns
+    restart: unless-stopped
+    command: # CLI arguments
+      - --global.checkNewVersion=false
+      - --global.sendAnonymousUsage=false
+      - --entrypoints.http.address=:80
+      - --entrypoints.https.address=:443
+      - --entrypoints.step-ca.address=:8443
+      - --api=true
+      # - --api.insecure=true
+      - --api.dashboard=true
+      # - --ping=true
+      # - --serversTransport.insecureSkipVerify=true
+      - --log=true
+      - --log.level=INFO # (Default: error) DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+      - --accessLog=true
+      - --accessLog.filePath=/traefik.log
+      - --accessLog.bufferingSize=100 # Configuring a buffer of 100 lines
+      - --accessLog.filters.statusCodes=400-499
+      - --providers.docker=true
+      - --providers.docker.endpoint=unix:///var/run/docker.sock # Use Docker Socket Proxy instead for improved security
+      # - --providers.docker.endpoint=tcp://socket-proxy:2375
+      # Automatically set Host rule for services
+      # - --providers.docker.defaultrule=Host(`{{ index .Labels "com.docker.compose.service" }}.$DOMAINNAME`)
+      - --providers.docker.exposedByDefault=false
+      # - --providers.file.filename=/etc/traefik/config/dyn-conf.yml
+      #- --providers.docker.useBindPortIP=true
+      - --providers.docker.network=traefik
+      - --entrypoints.http.forwardedHeaders.insecure
+      #- --entrypoints.https.http.tls.options=tls-opts@file
+      - --providers.file.directory=/rules # Load dynamic configuration from one or more .toml or .yml files in a directory
+      - --providers.file.watch=true # Only works on top level files in the rules folder
+      #- --metrics.prometheus=true
+      #- --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
+      - --serversTransport.rootCAs=/rootCA/${ROOT_CA_CERT}
+      - --certificatesResolvers.step.acme.email=${ADMIN_EMAIL}
+      - --certificatesresolvers.step.acme.caServer=https://${CA_SERVER_IP_PORT}/acme/${ACME_PROVIDER}/directory
+      - --certificatesResolvers.step.acme.httpChallenge.entryPoint=http
+      - --certificatesresolvers.step.acme.storage=/acme/acme.json
+      #- --tls.stores.default.defaultCertificate.certFile=/certs/example.web.crt
+      #- --tls.stores.default.defaultCertificate.keyFile=/certs/example.web.key
+    environment:
+      - LEGO_CA_CERTIFICATES=/rootCA/${ROOT_CA_CERT}
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro" # Use Docker Socket Proxy instead for improved security
+      - traefik-acme:/acme
+      - ${HOST_CERT_DIR}:/rootCA:ro
+      - ${TRAEFIK_GIT_SYNC_DIR}:/rules
+      - $PWD/logs/traefik.log:/traefik.log # for fail2ban - make sure to touch file before starting container
+      - "./secrets:/secrets/"
+      - "./certs:/certs/"
+    networks:
+      traefik:
+        ipv4_address: ${TRAEFIK_IP} # You can specify a static IP
+    dns:
+      - ${COREDNS_IP}
+    dns_search: example.web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.http-catchall.entrypoints=http"
+      - "traefik.http.routers.http-catchall.rule=HostRegexp(`{any:.+}`)"
+      - "traefik.http.routers.http-catchall.middlewares=https_redirect"
+      - "traefik.http.middlewares.https_redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https_redirect.redirectscheme.permanent=true"
+      #traefik dashboard rules
+      - "traefik.http.routers.dashboard.entrypoints=https"
+      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_SERVICE_NAME}.${DOMAINNAME}`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.tls.certResolver=step"
+
+  step-ca:
+    container_name: step-ca
+    hostname: ${STEP_CA_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/smallstep/step-ca:${STEP_CA_TAG}@sha256:${STEP_CA_DIGEST}
+    depends_on:
+      - coredns
+    restart: unless-stopped
+    expose:
+    - "8443"
+    labels:
+     - "traefik.enable=true"
+     - "traefik.tcp.routers.step-ca.rule=HostSNI(`${STEP_CA_SERVICE_NAME}.${DOMAINNAME}`)"
+     - "traefik.tcp.routers.step-ca.service=step-ca"
+     - "traefik.tcp.routers.step-ca.tls.passthrough=true"
+     - "traefik.tcp.services.step-ca.loadbalancer.server.port=8443"
+    volumes:
+      - "step-ca:/home/step"
+      - "./scripts/entrypoint-step-ca.sh:/usr/local/bin/entrypoint-step-ca.sh"
+      - "./secrets:/secrets/"
+      - "./certs:/certs/"
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    environment:
+      - STEPDEBUG=1
+      - DEFAULT_CERT_VALIDITY=${DEFAULT_CERT_VALIDITY:-720h}
+      - MAX_CERT_VALIDITY=${MAX_CERT_VALIDITY:-2160h}
+    entrypoint: ["bash", "/usr/local/bin/entrypoint-step-ca.sh", "$DNSNAMES", "$CA_SERVER", "$RESOLVER", "$SUBORDINATE_CERT", "$SUBORDINATE_KEY", "$SUB_SIGNED_BY_CERT"]
+    stop_grace_period: 30s
+    networks:
+      traefik:
+        ipv4_address: ${STEP_CA_IP}
+    dns:
+      - ${COREDNS_IP}
+    dns_search: example.web
+
+  coredns:
+    container_name: coredns
+    hostname: ${COREDNS_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/coredns/coredns:${COREDNS_TAG}@sha256:${COREDNS_DIGEST}
+    restart: always
+    expose:
+      - "53"
+      - "53/udp"
+    volumes:
+      - ./Corefile:/Corefile
+      - "./config:/etc/coredns"
+      - ${COREDNS_GIT_SYNC_DIR}:/coreDNS
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    networks:
+      traefik:
+        ipv4_address: ${COREDNS_IP}
+
+  nexus:
+    container_name: nexus
+    hostname: ${NEXUS_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/sonatype/nexus3:${NEXUS_TAG}@sha256:${NEXUS_DIGEST}
+    depends_on:
+      - traefik
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nexus.entrypoints=https"
+      - "traefik.http.routers.nexus.rule=Host(`${NEXUS_SERVICE_NAME}.${DOMAINNAME}`)"
+      - "traefik.http.routers.nexus.service=nexus"
+      - "traefik.http.routers.nexus.tls=true"
+      - "traefik.http.routers.nexus.tls.certResolver=step"
+      - "traefik.http.services.nexus.loadbalancer.server.port=8081"
+      #- "traefik.http.routers.nexus-http.rule=Host(`${NEXUS_SERVICE_NAME}.${DOMAINNAME}`)"
+      #- "traefik.http.routers.nexus-http.service=nexus-http"
+      #- "traefik.http.routers.nexus-http.entrypoints=http"
+      #- "traefik.http.services.nexus-http.loadbalancer.server.port=8081"
+      ## Update to have priority greater than http-catchall rule.
+      #- "traefik.http.routers.nexus-http.priority=27"
+    volumes:
+      - nexus-data:/nexus-data
+      - ./deploy:/opt/sonatype/nexus/deploy/
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    environment:
+      - INSTALL4J_ADD_VM_PARAMS=-Xms2048m -Xmx2g -XX:MaxDirectMemorySize=3g
+    networks:
+      traefik:
+        ipv4_address: ${NEXUS_IP}
+    dns:
+      - ${COREDNS_IP}
+    dns_search: example.web
+
+
+  gitlab:
+    container_name: gitlab
+    hostname: ${GITLAB_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/gitlab/gitlab-ce:${GITLAB_TAG}@sha256:${GITLAB_DIGEST}
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url = 'https://${GITLAB_SERVICE_NAME}.${DOMAINNAME}'
+        nginx['redirect_http_to_https'] = false
+        nginx['listen_port'] = 80
+        nginx['listen_https'] = false
+        nginx['proxy_set_headers'] = {
+          'X-Forwarded-Proto' => 'https',
+          'X-Forwarded-Ssl' => 'on'
+        }
+        nginx['client_max_body_size'] = '2G'
+        unicorn['worker_timeout'] = 60
+        unicorn['worker_processes'] = 2
+        sidekiq['concurrency'] = 15
+        postgresql['shared_buffers'] = "512MB"
+        gitlab_rails['artifacts_enabled'] = true
+        gitlab_rails['artifacts_path'] = "/var/opt/gitlab/gitlab-artifacts"
+        gitlab_rails['lfs_enabled'] = true
+        gitlab_rails['backup_keep_time'] = 172600
+        gitlab_ci['backup_keep_time'] = 172600
+        gitlab_rails['ldap_enabled'] = true
+        gitlab_rails['ldap_servers'] = YAML.load <<-'EOS'
+          main:
+            label: 'LDAP'
+            host: '${LDAP_HOST}'
+            port: 389
+            uid: 'sAMAccountName'
+            bind_dn: '${LDAP_USER}@${DOMAINNAME}'
+            password: '${LDAP_USER_PASSWORD}'
+            encryption: 'plain'
+            verify_certificates: false
+            active_directory: true
+            base: '${LDAP_BASE}'
+        EOS
+    expose:
+      - "80"
+      #- "22"
+    volumes:
+      - gitlab_config:/etc/gitlab
+      - gitlab_logs:/var/log/gitlab
+      - gitlab_data:/var/opt/gitlab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gitlab.rule=Host(`${GITLAB_SERVICE_NAME}.${DOMAINNAME}`)"
+      - "traefik.http.routers.gitlab.service=gitlab"
+      - "traefik.http.routers.gitlab.entrypoints=https"
+      - "traefik.http.routers.gitlab.tls=true"
+      - "traefik.http.routers.gitlab.tls.certResolver=step"
+      - "traefik.http.services.gitlab.loadbalancer.server.port=80"
+      # ssh inbound requests  
+      # Since traefik (well tcp actually) doesn't pass Server Name Information (SNI)
+      # We can only have 1 git server with ssh enabled on port 22 of the docker host.
+      #- "traefik.tcp.routers.gitlab-ssh.entrypoints=ssh"
+      #- "traefik.tcp.services.gitlab-ssh.loadbalancer.server.port=22"
+      #- "traefik.tcp.routers.gitlab-ssh.rule=HostSNI(`*`)"  #`*` listens for ANY connections on 22
+      #- "traefik.tcp.routers.gitlab-ssh.service=gitlab-ssh"
+    networks:
+      traefik:
+        ipv4_address: ${GITLAB_IP}
+    restart: always
+    dns:
+      - ${COREDNS_IP}
+    dns_search: example.web
+
+  keycloak:
+    container_name: keycloak
+    hostname: ${KEYCLOAK_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/jboss/keycloak:${KEYCLOAK_TAG}@sha256:${KEYCLOAK_DIGEST}
+    environment:
+      KEYCLOAK_USER: ${KEYCLOAK_USER}
+      KEYCLOAK_PASSWORD: ${KEYCLOAK_PASSWORD}
+      DB_VENDOR: POSTGRES
+      DB_ADDR: keycloak-postgres
+      DB_DATABASE: keycloak
+      DB_USER: ${KEYCLOAK_POSTGRES_USER}
+      DB_PASSWORD: ${KEYCLOAK_POSTGRES_PASSWORD}
+      PROXY_ADDRESS_FORWARDING: "true"
+      JAVA_OPTS: "-server -Xms2048m -Xmx6144m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=256m -Djava.net.preferIPv4Stack=true -Djboss.modules.system.pkgs=org.jboss.byteman -Djava.awt.headless=true  --add-exports=java.base/sun.nio.ch=ALL-UNNAMED --add-exports=jdk.unsupported/sun.misc=ALL-UNNAMED --add-exports=jdk.unsupported/sun.reflect=ALL-UNNAMED"
+    depends_on:
+      - keycloak-postgres
+    expose:
+      - 8080
+    volumes:
+      - /etc/pki:/etc/pki:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.rule=Host(`${KEYCLOAK_SERVICE_NAME}.${DOMAINNAME}`)"
+      - "traefik.http.routers.keycloak.service=keycloak"
+      - "traefik.http.routers.keycloak.entrypoints=https"
+      - "traefik.http.routers.keycloak.tls=true"
+      - "traefik.http.routers.keycloak.tls.certResolver=step"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+    restart: always
+    networks:
+      - traefik
+      - keycloak
+    dns:
+      - ${COREDNS_IP}
+    dns_search: example.web
+
+  keycloak-postgres:
+    image:  ${REGISTRY}/library/postgres:${KEYCLOAK_POSTGRES_TAG}@sha256:${KEYCLOAK_POSTGRES_DIGEST}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: ${KEYCLOAK_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${KEYCLOAK_POSTGRES_PASSWORD}
+    restart: always
+    networks:
+      - keycloak
+
+  mattermost:
+    container_name: mattermost
+    hostname: ${MATTERMOST_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/mattermost/mattermost-team-edition:${MATTERMOST_TAG}@sha256:${MATTERMOST_DIGEST} 
+    depends_on:
+      - db
+    restart: always
+    expose:
+      - "8065"
+    volumes:
+      - mattermost_config:/mattermost/config:rw
+      - mattermost_data:/mattermost/data:rw
+      - mattermost_logs:/mattermost/logs:rw
+      - mattermost_plugins:/mattermost/plugins:rw
+      - mattermost_client_plugins:/mattermost/client/plugins:rw
+      - /etc/localtime:/etc/localtime:ro
+      - ca-certificates:/etc/ssl/certs:ro
+      #- /etc/pki/ca-trust/sources:/usr/local/share/ca-certificates:ro
+      #- ${PWD}/bin/entrypoint2.sh:/entrypoint2.sh
+    #entrypoint: /entrypoint.sh
+    environment:
+      # set same as db credentials and dbname
+      - MM_USERNAME=${MATTERMOST_USERNAME}
+      - MM_PASSWORD=${MATTERMOST_PASSWORD}
+      - MM_DBNAME=${MATTERMOST_POSTGRES_DB}
+      # in case your config is not in default location
+      #- MM_CONFIG=/mattermost/config/config.json
+      - MM_LOGSETTINGS_CONSOLELEVEL=ERROR
+      - MM_SQLSETTINGS_DRIVERNAME=postgres
+      - MM_SQLSETTINGS_DATASOURCE=postgres://${MATTERMOST_POSTGRES_USER}:${MATTERMOST_POSTGRES_PASSWORD}@db:5432/${MATTERMOST_POSTGRES_DB}?sslmode=disable&connect_timeout=10
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mattermost.rule=Host(`${MATTERMOST_SERVICE_NAME}.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.mattermost.service=mattermost"
+      - "traefik.http.routers.mattermost.entrypoints=https"
+      - "traefik.http.routers.mattermost.tls=true"
+      - "traefik.http.routers.mattermost.tls.certResolver=step"
+      - "traefik.http.services.mattermost.loadbalancer.server.port=8065"
+    networks:
+      - traefik
+      - mattermost
+
+  mattermost-postgres:
+    container_name: mattermost-postgres
+    hostname: ${MATTERMOST_POSTGRES_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/library/postgres:${MATTERMOST_POSTGRES_TAG}@sha256:${MATTERMOST_POSTGRES_DIGEST}
+    restart: always
+    expose:
+      - "5432"  # only expose the port to the internal network
+    volumes:
+      - mattermost_postgresql_data:/var/lib/postgresql/data
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - POSTGRES_USER=${MATTERMOST_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${MATTERMOST_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${MATTERMOST_POSTGRES_DB}
+    shm_size: 256m  # shared memory, increased from the default 64m
+    networks:
+      - mattermost
+
+  mongo:
+    container_name: mongo
+    hostname: ${MONGO_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/library/mongo:${MONGO_TAG}@sha256:${MONGO_DIGEST}
+    restart: always
+    volumes:
+      - 'mongo_data:/data/db'
+    ports:
+      - '27017:27017'
+    # command: [--auth]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+      #MONGODB_DATABASE: admin
+      #MONGODB_USERNAME: usr_name
+      #MONGODB_PASSWORD: pr_123
+      #MONGODB_ROOT_PASSWORD: pr_123
+    networks:
+      - mongo
+
+  mongo-express:
+    container_name: mongo-express
+    hostname: ${MONGO_EXPRESS_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/library/mongo-express:${MONGO_EXPRESS_TAG}@sha256:${MONGO_EXPRESS_DIGEST}
+    restart: always
+    depends_on:
+      - mongo  
+    volumes:
+      - mongo_express_data:/data
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+      #ME_CONFIG_MONGODB_SERVER: mongodb-product
+      #ME_CONFIG_MONGODB_ENABLE_ADMIN: 'true'
+      #ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      #ME_CONFIG_MONGODB_ADMINPASSWORD: pr_123
+      #ME_CONFIG_BASICAUTH_USERNAME: user
+      #ME_CONFIG_BASICAUTH_PASSWORD: 1
+      #ME_CONFIG_OPTIONS_EDITORTHEME: cobalt
+    networks:
+      - mongo
+
+  #zookeeper:  # the configuration manager
+  #  hostname: zookeeper
+  #  container_name: zookeeper
+  #  image: ${REGISTRY}/bitnami/zookeeper:${ZOOKEEPER_TAG}@sha256:${ZOOKEEPER_DIGEST}
+  #  environment:
+  #    - ALLOW_ANONYMOUS_LOGIN=yes
+
+  nifi:
+    hostname: nifi
+    container_name: nifi
+    image: ${REGISTRY}hortonworks/nifi:3.5.1.0@sha256:7d8d58e3b193fa67aa5a9f561930d9f452c2ce2910346f2afbfbc69eb629c813
+    privileged: true
+    build:
+      context: docker-nifi
+      dockerfile: Dockerfile
+    environment:
+      - NIFI_WEB_HTTP_PORT=8080
+    #  - NIFI_CLUSTER_IS_NODE=true
+    #  - NIFI_CLUSTER_NODE_PROTOCOL_PORT=8082
+    #  - NIFI_ZK_CONNECT_STRING=zookeeper:2181
+    #  - NIFI_ELECTION_MAX_WAIT=1 min
+    volumes:
+      - ~/bin:/mnt/bin:ro
+      - ~/project:/mnt/project
+    #  - /mnt/admin-share:/mnt/admin-share:rw
+    #  - .:/home/nifi:rw
+      - nifi-logs:/opt/nifi/nifi-current/logs
+      - nifi-conf:/opt/nifi/nifi-current/conf 
+      - nifi-database_repository:/opt/nifi/nifi-current/database_repository 
+      - nifi-flowfile_repository:/opt/nifi/nifi-current/flowfile_repository
+      - nifi-content_repository:/opt/nifi/nifi-current/content_repository
+      - nifi-provenance_repository:/opt/nifi/nifi-current/provenance_repository
+      - nifi-state:/opt/nifi/nifi-current/state
+    ports:
+      - 8081:8080
+    #  - 7001:7001
+    #labels:
+    #  - "traefik.enable=true"
+    #  - "traefik.http.routers.nifi.rule=Host(`${NIFI_SERVICE_NAME}.${DOMAIN_NAME}`)"
+    #  - "traefik.http.routers.nifi.service=nifi"
+    #  - "traefik.http.routers.nifi.entrypoints=https"
+    #  - "traefik.http.routers.nifi.tls=true"
+    #  - "traefik.http.routers.nifi.tls.certResolver=step"
+    #  - "traefik.http.services.nifi.loadbalancer.server.port=8080"
+    #  - "traefik.http.routers.listen.rule=Host(`${LISTEN_SERVICE_NAME}.${DOMAIN_NAME}`)"
+    #  - "traefik.http.routers.listen.service=listen"
+    #  - "traefik.http.routers.listen.entrypoints=https"
+    #  - "traefik.http.routers.listen.tls=true"
+    #  - "traefik.http.routers.listen.tls.certResolver=step"
+    #  - "traefik.http.services.listen.loadbalancer.server.port=7001"
+    #networks:
+    #  - traefik
+    restart: always
+
+networks:
+  traefik:
+    external:
+      name: traefik
+  keycloak:
+    external: 
+      name: keycloak
+  mattermost:
+    external: 
+      name: mattermost
+  mongo:
+    external:
+      name: mongo
+
+volumes:
+  step-ca:
+    external: true
+  traefik-acme:
+    external: true
+  nexus-data:
+    external: true
+  gitlab_config:
+    external: true
+  gitlab_logs:
+    external: true
+  gitlab_data:
+    external: true
+  gitlab-runner_conf:
+    external: true
+  keycloak_postgres_data:
+    external: true
+  mattermost_config:
+    external: true
+  mattermost_data:
+    external: true
+  mattermost_logs:
+    external: true
+  mattermost_plugins:
+    external: true
+  mattermost_client_plugins:
+    external: true
+  mattermost_postgresql_data:
+    external: true
+  mattermost_postgresql_dump:
+    external: true
+  mongo_data:
+    external: true  
+  mongo_express_data:
+    external: true 
+  nifi-logs:
+    external: true
+  nifi-conf:
+    external: true
+  nifi-database_repository:
+    external: true
+  nifi-flowfile_repository:
+    external: true
+  nifi-content_repository:
+    external: true
+  nifi-provenance_repository:
+    external: true
+  nifi-state:
+    external: true
