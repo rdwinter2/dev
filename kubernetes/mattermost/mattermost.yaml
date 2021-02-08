@@ -1,0 +1,101 @@
+kind: Secret
+apiVersion: v1
+metadata:
+  name: mattermost.env
+type: Opaque
+data:
+  # see http://kubernetes.io/docs/user-guide/secrets/#creating-a-secret-using-kubectl-create-secret
+  # for creating secrets manually
+    # db
+  db-host: ZGI=
+    # 5432
+  db-port: NTQzMg==
+    # mmuser
+  mm-username: bW11c2Vy
+    # mmuser_password
+  mm-password: bW11c2VyX3Bhc3N3b3Jk
+    # mattermost
+  mm-dbname: bWF0dGVybW9zdA==
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mattermost-app
+  labels:
+    app: mattermost
+    tier: app
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: mattermost-app
+      labels:
+        app: mattermost
+        tier: app
+    spec:
+      containers:
+      - name: mattermost-app
+        image: "mattermost/mattermost-prod-app:5.14.1"
+        resources:
+          requests:
+            memory: "100Mi"
+            cpu: "250m"
+          limits:
+             memory: "250Mi"
+            cpu: "500m"
+        env:
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: mattermost.env
+              key: db-host
+        - name: DB_PORT_NUMBER
+          valueFrom:
+            secretKeyRef:
+              name: mattermost.env
+              key: db-port
+        - name: MM_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mattermost.env
+              key: mm-username
+        - name: MM_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mattermost.env
+              key: mm-password
+        - name: MM_DBNAME
+          valueFrom:
+            secretKeyRef:
+              name: mattermost.env
+              key: mm-dbname
+        volumeMounts:
+        # optional persistent storage
+        #- name: appdata
+          #mountPath: /mattermost/data
+        - name: etclocaltime
+          mountPath: /etc/localtime
+          readOnly: true
+      volumes:
+      # optional persistent storage
+      #- name: appdata
+        #persistentVolumeClaim:
+        #  claimName: mattermost-app
+      - name: etclocaltime
+        hostPath:
+          path: /etc/localtime
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mattermost
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: mattermost
+    tier: app
