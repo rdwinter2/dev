@@ -18,8 +18,9 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
       * [SSH Config](#ssh-config)
       * [Set GitLab root password](#set-gitlab-root-password)
       * [gcloud CLI](#gcloud-cli)
+      * [Istio JWT](#istio-jwt)
 
-<!-- Added by: rdwinter2, at: Sun Feb  7 08:40:34 CST 2021 -->
+<!-- Added by: rdwinter2, at: Mon Feb  8 14:48:24 CST 2021 -->
 
 <!--te-->
 
@@ -346,3 +347,44 @@ gcloud compute instances describe instance-1
 
 gcloud compute instances delete instance-1 --zone=us-central1-a --delete-disks=all
 ```
+
+
+## Istio JWT
+
+curl host.domain -H "host: f.q.d.n"
+
+https://www.youtube.com/watch?v=MoCFt2zaaVA
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: "enable-mtls"
+  namespace: "default"
+spec:
+  host: "*.local"
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+
+---
+apiVersion: "authentication.istio.io/v1alpha1"
+kind: "Policy"
+metadata:
+  name: "jwt-example"
+spec:
+  targets:
+  - name: hello
+  peer:
+  - mtls: {}
+  origins:
+  - jwt:
+      issuer: "http-echo@http-echo.kubernetes.newtech.academy"
+      jwsUri: "http://auth.kubernetes.newtech.academy/.well-known/jwks.json"
+  principalBinding: USE_ORIGIN
+
+---
+
+
+curl url -H "host: f.q.d.n" -H "Authorization: Bearer $TOKEN"
+
