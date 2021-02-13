@@ -11,10 +11,12 @@ services:
       - coredns
     restart: unless-stopped
     command: # CLI arguments
+      - --ping=false
       - --global.checkNewVersion=false
       - --global.sendAnonymousUsage=false
       - --entrypoints.http.address=:80
       - --entrypoints.https.address=:443
+      - --entrypoints.https.http.tls.options=tls-opts@file
       - --entrypoints.step-ca.address=:8443
       - --api=true
       # - --api.insecure=true
@@ -51,6 +53,7 @@ services:
       #- --tls.stores.default.defaultCertificate.keyFile=/certs/example.web.key
     environment:
       - LEGO_CA_CERTIFICATES=/rootCA/${ROOT_CA_CERT}
+      - TZ=Etc/UTC
     ports:
       - 80:80
       - 443:443
@@ -77,7 +80,7 @@ services:
       - "traefik.http.middlewares.https_redirect.redirectscheme.permanent=true"
       #traefik dashboard rules
       - "traefik.http.routers.dashboard.entrypoints=https"
-      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_SERVICE_NAME}.${DOMAINNAME}`)"
+      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_SERVICE_NAME}.${DOMAINNAME}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.tls=true"
       - "traefik.http.routers.dashboard.tls.certResolver=step"
