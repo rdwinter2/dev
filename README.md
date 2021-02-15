@@ -20,7 +20,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
       * [gcloud CLI](#gcloud-cli)
       * [Istio JWT](#istio-jwt)
 
-<!-- Added by: rdwinter2, at: Mon Feb 15 05:26:58 CST 2021 -->
+<!-- Added by: rdwinter2, at: Mon Feb 15 05:44:20 CST 2021 -->
 
 <!--te-->
 
@@ -319,11 +319,16 @@ secrets/gcloud.sh
 EXTERNAL_IP=$(gcloud compute instances describe instance-1 --zone=us-central1-a | grep natIP | awk '{print $2}')
 echo ${EXTERNAL_IP}
 # If it doesn't already have the right IP 
-CONF=/c/Users/rdwinter2/.ssh/config && grep $EXTERNAL_IP $CONF || sed -i.bak$(date +%s) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $CONF
-CONF=/home/rdwinter2/.ssh/config && grep $EXTERNAL_IP $CONF || sed -i.bak$(date --iso-8601=seconds) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $CONF
+export USR=rdwinter2
+CONF=/c/Users/${USR}/.ssh/config && grep $EXTERNAL_IP $CONF || sed -i.bak$(date +%s) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $CONF
+CONF=/home/${USR}/.ssh/config && grep $EXTERNAL_IP $CONF || sed -i.bak$(date --iso-8601=seconds) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $CONF
 
 ssh instance-1 'bash -s' <<'ENDSSH'
+mkdir -p ~/.logins
 mkdir -p ~/.certs
+cat <<ENDGH > ~/.logins/gh
+$(ansible-vault view ~/.ansible/.logins/github_dev_token)
+ENDGH
 ENDSSH
 scp ~/.certs/*.crt instance-1:~/.certs
 scp ~/.certs/intermediateCA_password instance-1:~/.certs
