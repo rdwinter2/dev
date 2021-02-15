@@ -251,7 +251,9 @@ services:
     domainname: ${DOMAINNAME}
     image: ${REGISTRY}/portainer/portainer-ce:${PORTAINER_TAG}@sha256:${PORTAINER_DIGEST}
     restart: unless-stopped
-    command: -H unix:///var/run/docker.sock
+    command: 
+      - -H unix:///var/run/docker.sock
+      - --admin-password-file /tmp/portainer_password
     networks:
       - traefik
     security_opt:
@@ -260,7 +262,8 @@ services:
 #      - "$PORTAINER_PORT:9000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - portainer-data:/data 
+      - portainer-data:/data
+      - ./secrets/portainer_password:/tmp/portainer_password
     environment:
       - TZ=$TZ
     labels:
