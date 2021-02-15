@@ -20,7 +20,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
       * [gcloud CLI](#gcloud-cli)
       * [Istio JWT](#istio-jwt)
 
-<!-- Added by: rdwinter2, at: Mon Feb 15 06:11:25 CST 2021 -->
+<!-- Added by: rdwinter2, at: Mon Feb 15 07:10:36 CST 2021 -->
 
 <!--te-->
 
@@ -316,6 +316,11 @@ gcloud compute instances create instance-1 \
 
 
 secrets/gcloud.sh 
+until gcloud compute instances describe instance-1 --zone=us-central1-a
+do
+  echo "waiting for instance-1 creation ..."
+  sleep 1
+done
 EXTERNAL_IP=$(gcloud compute instances describe instance-1 --zone=us-central1-a | grep natIP | awk '{print $2}')
 echo ${EXTERNAL_IP}
 # If it doesn't already have the right IP 
@@ -363,6 +368,7 @@ gcloud compute instances describe instance-1
 
 
 yes | gcloud compute instances delete instance-1 --zone=us-central1-a --delete-disks=all
+
 ```
 
 
