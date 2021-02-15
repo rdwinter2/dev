@@ -61,11 +61,11 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro" # Use Docker Socket Proxy instead for improved security
       - traefik-acme:/acme
-      - ${HOST_CERT_DIR}:/rootCA:ro
+      - "./certs:/rootCA:ro"
       - ${TRAEFIK_GIT_SYNC_DIR}:/rules
       - $PWD/logs/traefik.log:/traefik.log # for fail2ban - make sure to touch file before starting container
-      - "./secrets:/secrets/"
-      - "./certs:/certs/"
+      #- "./secrets:/secrets/"
+      #- "./certs:/certs/"
     networks:
       traefik:
         ipv4_address: ${TRAEFIK_IP} # You can specify a static IP

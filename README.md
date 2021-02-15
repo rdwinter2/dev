@@ -20,7 +20,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
       * [gcloud CLI](#gcloud-cli)
       * [Istio JWT](#istio-jwt)
 
-<!-- Added by: rdwinter2, at: Mon Feb 15 05:44:20 CST 2021 -->
+<!-- Added by: rdwinter2, at: Mon Feb 15 06:11:25 CST 2021 -->
 
 <!--te-->
 
@@ -323,12 +323,17 @@ export USR=rdwinter2
 CONF=/c/Users/${USR}/.ssh/config && grep $EXTERNAL_IP $CONF || sed -i.bak$(date +%s) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $CONF
 CONF=/home/${USR}/.ssh/config && grep $EXTERNAL_IP $CONF || sed -i.bak$(date --iso-8601=seconds) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $CONF
 
+# without string interpolation
 ssh instance-1 'bash -s' <<'ENDSSH'
 mkdir -p ~/.logins
+ENDSSH
+# with string interpolation
+ssh instance-1 'bash -s' <<ENDSSH
 mkdir -p ~/.certs
 cat <<ENDGH > ~/.logins/gh
 $(ansible-vault view ~/.ansible/.logins/github_dev_token)
 ENDGH
+chmod 600 ~/.logins/gh
 ENDSSH
 scp ~/.certs/*.crt instance-1:~/.certs
 scp ~/.certs/intermediateCA_password instance-1:~/.certs
@@ -339,8 +344,8 @@ cp ~/.certs/intermediateCA_password ~/dev/secrets/password
 cp ~/.certs/intermediate_ca.key ~/dev/secrets/intermediate_ca.key
 cp ~/.certs/root_ca.crt ~/dev/certs/root_ca.crt
 cp ~/.certs/intermediate_ca.crt ~/dev/certs/intermediate_ca.crt
-sudo cp certs/root_ca.crt /usr/local/share/ca-certificates/root_ca.crt
-sudo cp certs/intermediate_ca.crt /usr/local/share/ca-certificates/intermediate_ca.crt
+sudo cp ~/dev/certs/root_ca.crt /usr/local/share/ca-certificates/root_ca.crt
+sudo cp ~/dev/certs/intermediate_ca.crt /usr/local/share/ca-certificates/intermediate_ca.crt
 sudo /usr/sbin/update-ca-certificates
 newgrp docker
 cd ~/dev
