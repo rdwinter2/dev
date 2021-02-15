@@ -20,7 +20,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
       * [gcloud CLI](#gcloud-cli)
       * [Istio JWT](#istio-jwt)
 
-<!-- Added by: rdwinter2, at: Mon Feb 15 07:10:36 CST 2021 -->
+<!-- Added by: rdwinter2, at: Mon Feb 15 08:09:15 CST 2021 -->
 
 <!--te-->
 
@@ -313,7 +313,18 @@ gcloud compute instances create instance-1 \
   --boot-disk-size=256GB \
   --preemptible
 
+if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))  
+{  
+  $arguments = "& '" +$myinvocation.mycommand.definition + "'"
+  Start-Process powershell -Verb runAs -ArgumentList $arguments
+  Break
+}
 
+#########################  After configuring OpnSense
+/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
+ipconfig /flushdns
+exit
+#########################
 
 secrets/gcloud.sh 
 until gcloud compute instances describe instance-1 --zone=us-central1-a
@@ -357,6 +368,7 @@ cd ~/dev
 docker-compose -f ~/dev/docker-compose-git-sync.yml up -d
 sleep 10
 docker-compose  -f ~/dev/docker-compose.yml up -d 
+docker logs -f traefik
 ENDSSH
 
 kns() { 

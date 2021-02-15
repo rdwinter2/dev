@@ -58,6 +58,7 @@ docker volume create nifi-flowfile_repository
 docker volume create nifi-content_repository
 docker volume create nifi-provenance_repository
 docker volume create nifi-state
+docker volume create portainer-data
 
 mkdir -p {/tmp/git-sync/coredns/,/tmp/git-sync/traefik/}
 sudo chown root:root -R /tmp/git-sync

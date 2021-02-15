@@ -244,6 +244,38 @@ services:
       - ${COREDNS_IP}
     dns_search: example.web
 
+# Portainer - WebUI for Containers
+  portainer:
+    container_name: portainer
+    hostname: ${PORTAINER_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/portainer/portainer-ce:${PORTAINER_TAG}@sha256:${PORTAINER_DIGEST}
+    restart: unless-stopped
+    command: -H unix:///var/run/docker.sock
+    networks:
+      - traefik
+    security_opt:
+      - no-new-privileges:true
+#    ports:
+#      - "$PORTAINER_PORT:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - $DOCKERDIR/portainer/data:/data 
+    environment:
+      - TZ=$TZ
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`${PORTAINER_SERVICE_NAME}.${DOMAINNAME}`)"
+      - "traefik.http.routers.gitlab.service=portainer"
+      - "traefik.http.routers.portainer.entrypoints=https"
+      - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.routers.portainer.tls.certResolver=step"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      ## Middlewares
+      - "traefik.http.routers.portainer.middlewares=chain-no-auth@file" # No Authentication
+#      - "traefik.http.routers.portainer-rtr.middlewares=chain-basic-auth@file" # Basic Authentication
+#      - "traefik.http.routers.portainer-rtr.middlewares=chain-oauth@file" # Google OAuth 2.0
+
 networks:
   traefik:
     external:
@@ -306,4 +338,6 @@ volumes:
   nifi-provenance_repository:
     external: true
   nifi-state:
+    external: true
+  portainer-data:
     external: true
