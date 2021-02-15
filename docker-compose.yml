@@ -195,7 +195,7 @@ services:
         unicorn['worker_processes'] = 2
         sidekiq['concurrency'] = 15
         postgresql['shared_buffers'] = "512MB"
-        gitlab_rails['initial_root_password'] = 'admin'
+        gitlab_rails['initial_root_password'] = 'password'
         gitlab_rails['artifacts_enabled'] = true
         gitlab_rails['artifacts_path'] = "/var/opt/gitlab/gitlab-artifacts"
         gitlab_rails['lfs_enabled'] = true
@@ -230,6 +230,11 @@ services:
       - "traefik.http.routers.gitlab.tls=true"
       - "traefik.http.routers.gitlab.tls.certResolver=step"
       - "traefik.http.services.gitlab.loadbalancer.server.port=80"
+      ## Middlewares
+      - "traefik.http.routers.gitlab.middlewares=chain-no-auth@file" # No Authentication
+#      - "traefik.http.routers.portainer.middlewares=chain-basic-auth@file" # Basic Authentication
+#      - "traefik.http.routers.portainer.middlewares=chain-oauth@file" # Google OAuth 2.0
+
       # ssh inbound requests  
       # Since traefik (well tcp actually) doesn't pass Server Name Information (SNI)
       # We can only have 1 git server with ssh enabled on port 22 of the docker host.
@@ -277,8 +282,8 @@ services:
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
       ## Middlewares
       - "traefik.http.routers.portainer.middlewares=chain-no-auth@file" # No Authentication
-#      - "traefik.http.routers.portainer-rtr.middlewares=chain-basic-auth@file" # Basic Authentication
-#      - "traefik.http.routers.portainer-rtr.middlewares=chain-oauth@file" # Google OAuth 2.0
+#      - "traefik.http.routers.portainer.middlewares=chain-basic-auth@file" # Basic Authentication
+#      - "traefik.http.routers.portainer.middlewares=chain-oauth@file" # Google OAuth 2.0
 
 networks:
   traefik:
