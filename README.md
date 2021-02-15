@@ -20,7 +20,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
       * [gcloud CLI](#gcloud-cli)
       * [Istio JWT](#istio-jwt)
 
-<!-- Added by: rdwinter2, at: Mon Feb 15 08:09:15 CST 2021 -->
+<!-- Added by: rdwinter2, at: Mon Feb 15 09:00:39 CST 2021 -->
 
 <!--te-->
 
@@ -341,16 +341,18 @@ CONF=/home/${USR}/.ssh/config && grep $EXTERNAL_IP $CONF || sed -i.bak$(date --i
 
 # without string interpolation
 ssh instance-1 'bash -s' <<'ENDSSH'
-mkdir -p ~/.logins
+mkdir -p ~/.certs
+mkdir -p ~/.secrets
 ENDSSH
 # with string interpolation
 ssh instance-1 'bash -s' <<ENDSSH
-mkdir -p ~/.certs
+mkdir -p ~/.logins
 cat <<ENDGH > ~/.logins/gh
 $(ansible-vault view ~/.ansible/.logins/github_dev_token)
 ENDGH
 chmod 600 ~/.logins/gh
 ENDSSH
+scp ~/.secrets/portainer_password instance-1:~/.secrets
 scp ~/.certs/*.crt instance-1:~/.certs
 scp ~/.certs/intermediateCA_password instance-1:~/.certs
 scp ~/.certs/intermediate_ca.key instance-1:~/.certs
