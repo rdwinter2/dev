@@ -1,5 +1,12 @@
 tls:
   options:
+#    default:
+#      minVersion: VersionTLS13
+#      sniStrict: true
+#      clientAuth:
+#        caFiles:
+#          - /rootCA/root_ca.crt
+#        clientAuthType: RequireAndVerifyClientCert
     tls-opts:
       minVersion: VersionTLS12
       cipherSuites:
@@ -17,3 +24,7 @@ tls:
         - CurveP521
         - CurveP384
       sniStrict: true
+      clientAuth:
+        caFiles:
+          - /rootCA/root_ca.crt
+        clientAuthType: RequireAndVerifyClientCert

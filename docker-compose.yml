@@ -41,6 +41,7 @@ services:
       - --entrypoints.http.forwardedHeaders.insecure
       - --entrypoints.https.http.tls.options=tls-opts@file
       - --providers.file.directory=/rules # Load dynamic configuration from one or more .toml or .yml files in a directory
+      #- --providers.file.directory=/rules/traefik-rules.git/rules # Load dynamic configuration from one or more .toml or .yml files in a directory
       - --providers.file.watch=true # Only works on top level files in the rules folder
       #- --metrics.prometheus=true
       #- --metrics.prometheus.buckets=0.1,0.3,1.2,5.0

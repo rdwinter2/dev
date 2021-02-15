@@ -20,7 +20,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
       * [gcloud CLI](#gcloud-cli)
       * [Istio JWT](#istio-jwt)
 
-<!-- Added by: rdwinter2, at: Mon Feb  8 14:48:24 CST 2021 -->
+<!-- Added by: rdwinter2, at: Mon Feb 15 05:26:58 CST 2021 -->
 
 <!--te-->
 
@@ -316,6 +316,12 @@ gcloud compute instances create instance-1 \
 
 
 secrets/gcloud.sh 
+EXTERNAL_IP=$(gcloud compute instances describe instance-1 --zone=us-central1-a | grep natIP | awk '{print $2}')
+echo ${EXTERNAL_IP}
+# If it doesn't already have the right IP 
+CONF=/c/Users/rdwinter2/.ssh/config && grep $EXTERNAL_IP $CONF || sed -i.bak$(date +%s) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $CONF
+CONF=/home/rdwinter2/.ssh/config && grep $EXTERNAL_IP $CONF || sed -i.bak$(date --iso-8601=seconds) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $CONF
+
 ssh instance-1 'bash -s' <<'ENDSSH'
 mkdir -p ~/.certs
 ENDSSH
@@ -332,12 +338,13 @@ sudo cp certs/root_ca.crt /usr/local/share/ca-certificates/root_ca.crt
 sudo cp certs/intermediate_ca.crt /usr/local/share/ca-certificates/intermediate_ca.crt
 sudo /usr/sbin/update-ca-certificates
 newgrp docker
-docker-compose -f docker-compose-git-sync.yml up -d
+cd ~/dev
+docker-compose -f ~/dev/docker-compose-git-sync.yml up -d
 sleep 10
-docker-compose up -d
+docker-compose  -f ~/dev/docker-compose.yml up -d 
 ENDSSH
 
-kns() {
+kns() { 
     namespace=$1
     kubectl config set-context --current --namespace=$1
 }
@@ -345,7 +352,7 @@ kns() {
 gcloud compute instances describe instance-1
 
 
-gcloud compute instances delete instance-1 --zone=us-central1-a --delete-disks=all
+yes | gcloud compute instances delete instance-1 --zone=us-central1-a --delete-disks=all
 ```
 
 
