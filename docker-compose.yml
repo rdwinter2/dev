@@ -50,8 +50,8 @@ services:
       - --certificatesresolvers.step.acme.caServer=https://${CA_SERVER_IP_PORT}/acme/${ACME_PROVIDER}/directory
       - --certificatesResolvers.step.acme.httpChallenge.entryPoint=http
       - --certificatesresolvers.step.acme.storage=/acme/acme.json
-      #- --tls.stores.default.defaultCertificate.certFile=/certs/example.web.crt
-      #- --tls.stores.default.defaultCertificate.keyFile=/certs/example.web.key
+      #- --tls.stores.default.defaultCertificate.certFile=/certs/${DOMAINNAME}.crt
+      #- --tls.stores.default.defaultCertificate.keyFile=/certs/${DOMAINNAME}.key
     environment:
       - LEGO_CA_CERTIFICATES=/rootCA/${ROOT_CA_CERT}
       - TZ=Etc/UTC
@@ -71,7 +71,7 @@ services:
         ipv4_address: ${TRAEFIK_IP} # You can specify a static IP
     dns:
       - ${COREDNS_IP}
-    dns_search: example.web
+    dns_search: ${DOMAINNAME}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.http-catchall.entrypoints=http"
@@ -119,7 +119,7 @@ services:
         ipv4_address: ${STEP_CA_IP}
     dns:
       - ${COREDNS_IP}
-    dns_search: example.web
+    dns_search: ${DOMAINNAME}
 
   coredns:
     container_name: coredns
@@ -173,7 +173,7 @@ services:
         ipv4_address: ${NEXUS_IP}
     dns:
       - ${COREDNS_IP}
-    dns_search: example.web
+    dns_search: ${DOMAINNAME}
 
   gitlab:
     container_name: gitlab
@@ -242,7 +242,7 @@ services:
     restart: always
     dns:
       - ${COREDNS_IP}
-    dns_search: example.web
+    dns_search: ${DOMAINNAME}
 
 # Portainer - WebUI for Containers
   portainer:
@@ -255,11 +255,13 @@ services:
       - -H unix:///var/run/docker.sock
       - --admin-password-file /tmp/portainer_password
     networks:
-      - traefik
+      traefik:
+        ipv4_address: ${PORTAINER_IP}
+    dns:
+      - ${COREDNS_IP}
+    dns_search: ${DOMAINNAME}
     security_opt:
       - no-new-privileges:true
-#    ports:
-#      - "$PORTAINER_PORT:9000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - portainer-data:/data
