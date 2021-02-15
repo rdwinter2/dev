@@ -20,7 +20,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
       * [gcloud CLI](#gcloud-cli)
       * [Istio JWT](#istio-jwt)
 
-<!-- Added by: rdwinter2, at: Mon Feb 15 09:00:39 CST 2021 -->
+<!-- Added by: rdwinter2, at: Mon Feb 15 10:46:18 CST 2021 -->
 
 <!--te-->
 
@@ -325,6 +325,8 @@ if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 ipconfig /flushdns
 exit
 #########################
+
+docker run --rm httpd:2.4-alpine htpasswd -nbB admin "admin" | cut -d ":" -f 2 | sed 's/\$/$$/g'
 
 secrets/gcloud.sh 
 until gcloud compute instances describe instance-1 --zone=us-central1-a

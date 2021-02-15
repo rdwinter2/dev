@@ -195,6 +195,7 @@ services:
         unicorn['worker_processes'] = 2
         sidekiq['concurrency'] = 15
         postgresql['shared_buffers'] = "512MB"
+        gitlab_rails['initial_root_password'] = 'admin'
         gitlab_rails['artifacts_enabled'] = true
         gitlab_rails['artifacts_path'] = "/var/opt/gitlab/gitlab-artifacts"
         gitlab_rails['lfs_enabled'] = true
@@ -251,9 +252,7 @@ services:
     domainname: ${DOMAINNAME}
     image: ${REGISTRY}/portainer/portainer-ce:${PORTAINER_TAG}@sha256:${PORTAINER_DIGEST}
     restart: unless-stopped
-    command: 
-      - -H unix:///var/run/docker.sock
-      - --admin-password-file /tmp/portainer_password
+    command: --admin-password "$$2y$$05$$B4Ra4PjiXJA6x.iIp8USy.qKE8qsgN4ar7upU39wHZwG8fmqXL1.e" -H unix:///var/run/docker.sock
     networks:
       traefik:
         ipv4_address: ${PORTAINER_IP}
@@ -265,7 +264,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - portainer-data:/data
-      - $HOME/.secrets/portainer_password:/tmp/portainer_password
+      #- $HOME/.secrets/portainer_password:/tmp/portainer_password:ro
     environment:
       - TZ=$TZ
     labels:

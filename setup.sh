@@ -67,12 +67,19 @@ sudo chmod 777 -R /tmp/git-sync
 $(~/dev/scripts/homebrew.sh 2>&1 | tee /tmp/homebrew.out | cat > /dev/null) &
 pids[1]=$!
 t=$(mktemp -d); pushd $t
-GH_VERSION=`curl  "https://api.github.com/repos/cli/cli/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-`
-curl -fsSL -O https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz
-tar xvf ./gh_${GH_VERSION}_linux_amd64.tar.gz
-sudo install --mode=755 --owner=root ./gh_${GH_VERSION}_linux_amd64/bin/gh /usr/local/bin/
-sudo cp -r ./gh_${GH_VERSION}_linux_amd64/share/man/man1/* /usr/share/man/man1/
-rm -rf ./gh_${GH_VERSION}_linux_amd64*
+# GitHub cli - gh
+VERSION=`curl -fsSL "https://api.github.com/repos/cli/cli/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-`
+curl -fsSL -O https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_amd64.tar.gz
+tar xvf ./gh_${VERSION}_linux_amd64.tar.gz
+sudo install --mode=755 --owner=root ./gh_${VERSION}_linux_amd64/bin/gh /usr/local/bin/
+sudo cp -r ./gh_${VERSION}_linux_amd64/share/man/man1/* /usr/share/man/man1/
+rm -rf ./gh_${VERSION}_linux_amd64*
+# GitLab cli - lab
+VERSION=`curl -fsSL "https://api.github.com/repos/zaquestion/lab/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-`
+curl -fsSL "https://github.com/zaquestion/lab/releases/download/v${VERSION}/lab_${VERSION}_linux_amd64.tar.gz" | tar -xzf -
+sudo install -m755 ./lab /usr/local/bin/lab
+rm -rf $t/*
+#
 sudo mkdir -p /usr/java
 curl -fsSL https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.9.1%2B1/OpenJDK11U-jdk_x64_linux_hotspot_11.0.9.1_1.tar.gz | sudo tar xzf - -C /usr/java
 # export PATH=$PWD/jdk-11.0.9.1+1/bin:$PATH
