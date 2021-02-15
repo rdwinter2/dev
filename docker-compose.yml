@@ -54,7 +54,7 @@ services:
       #- --tls.stores.default.defaultCertificate.keyFile=/certs/${DOMAINNAME}.key
     environment:
       - LEGO_CA_CERTIFICATES=/rootCA/${ROOT_CA_CERT}
-      - TZ=Etc/UTC
+      - TZ=$TZ
     ports:
       - 80:80
       - 443:443
