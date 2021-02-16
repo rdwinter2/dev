@@ -427,3 +427,47 @@ spec:
 
 curl url -H "host: f.q.d.n" -H "Authorization: Bearer $TOKEN"
 
+###
+
+.env.sample
+WHOAMI_TAG=v1.5.0
+WHOAMI_DIGEST=e6d0a6d995c167bd339fa8b9bb2f585acd9a6e505a6b3fb6afb5fcbd52bbefb8
+HOST_NAME=localhost
+DOMAINNAME=localdomain
+REGISTRY=registry-1.docker.io
+
+docker-compose.yml
+version: "3.7"
+
+########################### NETWORKS
+# Create the traefik network
+# docker network create traefik
+# Alternatively, you can specify the gateway and subnet to use
+# docker network create --gateway 192.168.90.1 --subnet 192.168.90.0/24 traefik
+
+networks:
+  traefik:
+    external:
+      name: traefik
+
+########################### SERVICES
+services:
+
+  whoami:
+    container_name: whoami
+    hostname: whoami
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/containous/whoami:${WHOAMI_TAG}@sha256:${WHOAMI_DIGEST}
+    restart: always
+    networks:
+      - traefik
+    labels:
+      traefik.enable: true
+      traefik.http.routers.whoami.rule: Host(`${HOST_NAME}.${DOMAINNAME}`) && PathPrefix(`/whoami`) 
+      traefik.http.routers.whoami.service: whoami
+      traefik.http.routers.whoami.entrypoints: https
+      traefik.http.routers.whoami.middlewares: whoami
+      traefik.http.middlewares.whoami.stripPrefix.prefixes: /whoami
+      traefik.http.routers.whoami.tls: true
+      traefik.http.routers.whoami.tls.certResolver: step
+      traefik.http.services.whoami.loadbalancer.server.port: 80
