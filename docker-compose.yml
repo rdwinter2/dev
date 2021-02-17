@@ -292,14 +292,18 @@ services:
     image: ${REGISTRY}/containous/whoami:${WHOAMI_TAG}@sha256:${WHOAMI_DIGEST}
     restart: always
     networks:
-      - traefik
+      traefik:
+        ipv4_address: ${WHOAMI_IP}
+    dns:
+      - ${COREDNS_IP}
+    dns_search: ${DOMAINNAME}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.whoami.rule=Host(`${HOST_NAME}.${DOMAINNAME}`) && PathPrefix(`/whoami`)"
+      - "traefik.http.routers.whoami.rule=Host(`${WHOAMI_SERVICE_NAME}.${DOMAINNAME}`)"
       - "traefik.http.routers.whoami.service=whoami"
       - "traefik.http.routers.whoami.entrypoints=https"
       - "traefik.http.routers.whoami.middlewares=whoami"
-      - "traefik.http.middlewares.whoami.stripPrefix.prefixes=/whoami"
+      #- "traefik.http.middlewares.whoami.stripPrefix.prefixes=/whoami"
       - "traefik.http.routers.whoami.tls=true"
       - "traefik.http.routers.whoami.tls.certResolver=step"
       - "traefik.http.services.whoami.loadbalancer.server.port=80"
