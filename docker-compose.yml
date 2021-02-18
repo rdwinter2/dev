@@ -302,7 +302,7 @@ services:
       - "traefik.http.routers.whoami.rule=Host(`${WHOAMI_SERVICE_NAME}.${DOMAINNAME}`)"
       - "traefik.http.routers.whoami.service=whoami"
       - "traefik.http.routers.whoami.entrypoints=https"
-      - "traefik.http.routers.whoami.middlewares=whoami"
+      #- "traefik.http.routers.whoami.middlewares=whoami"
       #- "traefik.http.middlewares.whoami.stripPrefix.prefixes=/whoami"
       - "traefik.http.routers.whoami.tls=true"
       - "traefik.http.routers.whoami.tls.certResolver=step"
