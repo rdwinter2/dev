@@ -313,10 +313,10 @@ services:
     image: ${REGISTRY}/grafana/promtail:${PROMTAIL_TAG}
     restart: unless-stopped
     volumes:
-      - $PWD/promtail/config.yml:/etc/promtail/config.yml
+      - $PWD/promtail/config.yaml:/etc/promtail/config.yaml
       - /var/log:/var/log
     user: "${PUID}:${PGID}"
-    command: -config.file=/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yaml
 
 networks:
   traefik:
