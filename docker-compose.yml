@@ -195,7 +195,6 @@ services:
         unicorn['worker_processes'] = 2
         sidekiq['concurrency'] = 15
         postgresql['shared_buffers'] = "512MB"
-        gitlab_rails['initial_root_password'] = 'password'
         gitlab_rails['artifacts_enabled'] = true
         gitlab_rails['artifacts_path'] = "/var/opt/gitlab/gitlab-artifacts"
         gitlab_rails['lfs_enabled'] = true
@@ -331,6 +330,9 @@ networks:
   mongo:
     external:
       name: mongo
+  loki:
+    external:
+      true
 
 volumes:
   step-ca:

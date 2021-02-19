@@ -34,6 +34,7 @@ docker network create --gateway 192.168.90.1 --subnet 192.168.90.0/24 traefik
 docker network create keycloak
 docker network create mattermost
 docker network create mongo
+docker network create loki
 docker volume create step-ca
 docker volume create traefik-acme
 docker volume create nexus-data
@@ -109,6 +110,8 @@ export PATH="$PATH:/opt/istio/bin"
 popd
 
 newgrp docker
+docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
+
 cat <<-EOT | kind create cluster --name dev --image kindest/node:v1.20.2@sha256:8f7ea6e7642c0da54f04a7ee10431549c0257315b3a634f6ef2fecaaedb19bab --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
