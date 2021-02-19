@@ -315,7 +315,7 @@ services:
     volumes:
       - $PWD/promtail/config.yaml:/etc/promtail/config.yaml
       - /var/log:/var/log
-    user: "${PUID}:${PGID}"
+    user: "0:0"
     command: -config.file=/etc/promtail/config.yaml
 
 networks:
