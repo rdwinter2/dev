@@ -126,7 +126,7 @@ services:
     hostname: ${COREDNS_SERVICE_NAME}.${DOMAINNAME}
     domainname: ${DOMAINNAME}
     image: ${REGISTRY}/coredns/coredns:${COREDNS_TAG}@sha256:${COREDNS_DIGEST}
-    restart: always
+    restart: unless-stopped
     expose:
       - "53"
       - "53/udp"
@@ -146,7 +146,7 @@ services:
     image: ${REGISTRY}/sonatype/nexus3:${NEXUS_TAG}@sha256:${NEXUS_DIGEST}
     depends_on:
       - traefik
-    restart: always
+    restart: unless-stopped
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.nexus.entrypoints=https"
@@ -245,7 +245,7 @@ services:
     networks:
       traefik:
         ipv4_address: ${GITLAB_IP}
-    restart: always
+    restart: unless-stopped
     dns:
       - ${COREDNS_IP}
     dns_search: ${DOMAINNAME}
@@ -290,7 +290,7 @@ services:
     hostname: whoami
     domainname: ${DOMAINNAME}
     image: ${REGISTRY}/containous/whoami:${WHOAMI_TAG}@sha256:${WHOAMI_DIGEST}
-    restart: always
+    restart: unless-stopped
     networks:
       traefik:
         ipv4_address: ${WHOAMI_IP}
@@ -311,10 +311,11 @@ services:
   promtail: 
     container_name: promtail
     image: ${REGISTRY}/grafana/promtail:${PROMTAIL_TAG}
-    restart: always
+    restart: unless-stopped
     volumes:
       - $HOME/promtail:/etc/promtail
       - /var/log:/var/log
+    user: "${PUID}:${PGID}"
     environment:
       - config.file=/etc/promtail/config.yaml
 
