@@ -308,6 +308,16 @@ services:
       - "traefik.http.routers.whoami.tls.certResolver=step"
       - "traefik.http.services.whoami.loadbalancer.server.port=80"
 
+  promtail: 
+    container_name: promtail
+    image: ${REGISTRY}/grafana/promtail:${PROMTAIL_TAG}
+    restart: always
+    volumes:
+      - $HOME/promtail:/etc/promtail
+      - /var/log:/var/log
+    environment:
+      - config.file=/etc/promtail/config.yaml
+
 networks:
   traefik:
     external:

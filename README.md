@@ -24,7 +24,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
    * [Alternatively, you can specify the gateway and subnet to use](#alternatively-you-can-specify-the-gateway-and-subnet-to-use)
    * [docker network create --gateway 192.168.90.1 --subnet 192.168.90.0/24 traefik](#docker-network-create---gateway-192168901---subnet-19216890024-traefik)
 
-<!-- Added by: rdwinter2, at: Thu Feb 18 18:07:36 CST 2021 -->
+<!-- Added by: rdwinter2, at: Fri Feb 19 02:37:57 CST 2021 -->
 
 <!--te-->
 
@@ -324,12 +324,6 @@ if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
   Break
 }
 
-#########################  After configuring OpnSense
-/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
-ipconfig /flushdns
-exit
-#########################
-
 docker run --rm httpd:2.4-alpine htpasswd -nbB admin "admin" | cut -d ":" -f 2 | sed 's/\$/$$/g'
 
 #####################
@@ -337,15 +331,23 @@ scripts/init.sh
 #####################
 
 
+#########################  After configuring OpnSense
+/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
+ipconfig /flushdns
+exit
+#########################
+
+gcloud compute instances describe instance-1
+
+#####################
+yes | gcloud compute instances delete instance-1 --zone=us-central1-a --delete-disks=all
+#####################
+
+
 kns() { 
     namespace=$1
     kubectl config set-context --current --namespace=$1
 }
-
-gcloud compute instances describe instance-1
-
-
-yes | gcloud compute instances delete instance-1 --zone=us-central1-a --delete-disks=all
 
 ```
 
