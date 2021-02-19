@@ -274,7 +274,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.portainer.rule=Host(`${PORTAINER_SERVICE_NAME}.${DOMAINNAME}`)"
-      - "traefik.http.routers.gitlab.service=portainer"
+      - "traefik.http.routers.portainer.service=portainer"
       - "traefik.http.routers.portainer.entrypoints=https"
       - "traefik.http.routers.portainer.tls=true"
       - "traefik.http.routers.portainer.tls.certResolver=step"
