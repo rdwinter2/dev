@@ -34,6 +34,7 @@ scp ~/.certs/intermediate_ca.key instance-1:~/.certs
 scp secrets/promtail/* instance-1:~/promtail
 ssh instance-1 'bash -s' <<'ENDSSH'
 curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
+mv -f ~/promtail/* ~/dev/promtail
 cp ~/.certs/intermediateCA_password ~/dev/secrets/password
 cp ~/.certs/intermediate_ca.key ~/dev/secrets/intermediate_ca.key
 cp ~/.certs/root_ca.crt ~/dev/certs/root_ca.crt

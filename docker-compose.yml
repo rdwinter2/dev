@@ -313,7 +313,7 @@ services:
     image: ${REGISTRY}/grafana/promtail:${PROMTAIL_TAG}
     restart: unless-stopped
     volumes:
-      - $HOME/promtail:/etc/promtail
+      - $PWD/promtail:/etc/promtail
       - /var/log:/var/log
     user: "${PUID}:${PGID}"
     environment:
