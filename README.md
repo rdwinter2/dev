@@ -12,6 +12,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
    * [dev](#dev)
       * [Table of Contents](#table-of-contents)
       * [Instructions](#instructions)
+      * [Setup](#setup)
       * [Binaries](#binaries)
       * [Docker images](#docker-images)
       * [On Windows](#on-windows)
@@ -24,11 +25,32 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
    * [Alternatively, you can specify the gateway and subnet to use](#alternatively-you-can-specify-the-gateway-and-subnet-to-use)
    * [docker network create --gateway 192.168.90.1 --subnet 192.168.90.0/24 traefik](#docker-network-create---gateway-192168901---subnet-19216890024-traefik)
 
-<!-- Added by: rdwinter2, at: Fri Feb 19 06:12:12 CST 2021 -->
+<!-- Added by: rdwinter2, at: Sat Feb 20 04:42:06 CST 2021 -->
 
 <!--te-->
 
 ## Instructions
+
+```bash
+#####################
+scripts/init.sh
+#####################
+
+
+#########################  After configuring OpnSense
+/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
+ipconfig /flushdns
+exit
+#########################
+
+gcloud compute instances describe instance-1
+
+#####################
+yes | gcloud compute instances delete instance-1 --zone=us-central1-a --delete-disks=all
+#####################
+```
+
+## Setup
 
 Create an offline X.509 Certificate Authority on Windows Subsystem for Linux (WSL). 
 
@@ -325,24 +347,6 @@ if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 }
 
 docker run --rm httpd:2.4-alpine htpasswd -nbB admin "password" | cut -d ":" -f 2 | sed 's/\$/$$/g'
-
-#####################
-scripts/init.sh
-#####################
-
-
-#########################  After configuring OpnSense
-/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
-ipconfig /flushdns
-exit
-#########################
-
-gcloud compute instances describe instance-1
-
-#####################
-yes | gcloud compute instances delete instance-1 --zone=us-central1-a --delete-disks=all
-#####################
-
 
 kns() { 
     namespace=$1
