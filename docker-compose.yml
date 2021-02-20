@@ -82,6 +82,7 @@ services:
       #traefik dashboard rules
       - "traefik.http.routers.dashboard.entrypoints=https"
       - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_SERVICE_NAME}.${DOMAINNAME}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
+      - "traefik.http.routers.dashboard.middlewares=chain-no-auth@file"
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.tls=true"
       - "traefik.http.routers.dashboard.tls.certResolver=step"
@@ -155,6 +156,7 @@ services:
       - "traefik.http.routers.nexus.tls=true"
       - "traefik.http.routers.nexus.tls.certResolver=step"
       - "traefik.http.services.nexus.loadbalancer.server.port=8081"
+      - "traefik.http.routers.nexus.middlewares=chain-no-auth@file"
       #- "traefik.http.routersnexus.middlewares=nexus-redirect@docker,chain-oauth@file"
       #- "traefik.http.routers.nexus-http.rule=Host(`${NEXUS_SERVICE_NAME}.${DOMAINNAME}`)"
       #- "traefik.http.routers.nexus-http.service=nexus-http"
@@ -321,48 +323,48 @@ services:
       - /var/log:/var/log
     user: "0:0"
     command: -config.file=/etc/promtail/config.yaml
-    networks:
-      - loki
+  #  networks:
+  #    - loki
 
-  loki:
-    container_name: loki 
-    hostname: loki
-    domainname: ${DOMAINNAME}
-    image: ${REGISTRY}/grafana/loki:${LOKI_TAG}@sha256:${LOKI_DIGEST}
-    restart: unless-stopped
-    ports:
-      - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
-    networks:
-      - loki
+  #loki:
+  #  container_name: loki 
+  #  hostname: loki
+  #  domainname: ${DOMAINNAME}
+  #  image: ${REGISTRY}/grafana/loki:${LOKI_TAG}@sha256:${LOKI_DIGEST}
+  #  restart: unless-stopped
+  #  ports:
+  #    - "3100:3100"
+  #  command: -config.file=/etc/loki/local-config.yaml
+  #  networks:
+  #    - loki
 
-  grafana:
-    container_name: grafana
-    hostname: grafana
-    domainname: ${DOMAINNAME}
-    image: ${REGISTRY}/grafana/grafana:${GRAFANA_TAG}@sha256:${GRAFANA_DIGEST}
-    logging:
-      driver: loki
-      options:
-        loki-url: ${LOKI_URL}
-    #ports:
-    #  - "3000:3000"
-    networks:
-      loki:
-      traefik:
-        ipv4_address: ${GRAFANA_IP}
-    dns:
-      - ${COREDNS_IP}
-    dns_search: ${DOMAINNAME}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_SERVICE_NAME}.${DOMAINNAME}`)"
-      - "traefik.http.routers.grafana.service=grafana"
-      - "traefik.http.routers.grafana.entrypoints=https"
-      - "traefik.http.routers.grafana.middlewares=chain-no-auth@file"
-      - "traefik.http.routers.grafana.tls=true"
-      - "traefik.http.routers.grafana.tls.certResolver=step"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+  #grafana:
+  #  container_name: grafana
+  #  hostname: grafana
+  #  domainname: ${DOMAINNAME}
+  #  image: ${REGISTRY}/grafana/grafana:${GRAFANA_TAG}@sha256:${GRAFANA_DIGEST}
+  #  logging:
+  #    driver: loki
+  #    options:
+  #      loki-url: ${LOKI_URL}
+  #  #ports:
+  #  #  - "3000:3000"
+  #  networks:
+  #    loki:
+  #    traefik:
+  #      ipv4_address: ${GRAFANA_IP}
+  #  dns:
+  #    - ${COREDNS_IP}
+  #  dns_search: ${DOMAINNAME}
+  #  labels:
+  #    - "traefik.enable=true"
+  #    - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_SERVICE_NAME}.${DOMAINNAME}`)"
+  #    - "traefik.http.routers.grafana.service=grafana"
+  #    - "traefik.http.routers.grafana.entrypoints=https"
+  #    - "traefik.http.routers.grafana.middlewares=chain-no-auth@file"
+  #    - "traefik.http.routers.grafana.tls=true"
+  #    - "traefik.http.routers.grafana.tls.certResolver=step"
+  #    - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
 networks:
   traefik:
