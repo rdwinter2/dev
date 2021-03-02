@@ -2,6 +2,7 @@
 # To run 
 # curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
 echo "Running script... 🚀"
+sudo apt-key adv --keyserver keyring.debian.org --recv-keys 7EA0A9C3F273FCD8
 sudo apt-get update -yqq
 sudo apt-get install -yqq apt-transport-https bash-completion ca-certificates dnsutils gnupg-agent python-jinja2 python-yaml python-crypto software-properties-common wget jq jid build-essential gcc htop unzip zsh
 ssh-keygen -o -a 100 -t ed25519 -f ~/.ssh/id_ed25519 -N "" -C "$(whoami)@$(hostname)"
