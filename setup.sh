@@ -148,6 +148,7 @@ flux bootstrap gitlab \
   --repository=flux_gitops \
   --branch=main \
   --path=./clusters \
+  --private \ 
   --personal
 git clone git@gitlab.com:rdwinter2/flux_gitops.git ~/flux_gitops
 
