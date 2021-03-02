@@ -2,13 +2,13 @@
 # To run 
 # curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
 echo "Running script... 🚀"
-sudo apt-get update
-sudo apt-get install -y apt-transport-https bash-completion ca-certificates dnsutils gnupg-agent python-jinja2 python-yaml python-crypto software-properties-common wget jq jid build-essential gcc htop unzip zsh
+sudo apt-get update -yqq
+sudo apt-get install -yqq apt-transport-https bash-completion ca-certificates dnsutils gnupg-agent python-jinja2 python-yaml python-crypto software-properties-common wget jq jid build-essential gcc htop unzip zsh
 ssh-keygen -o -a 100 -t ed25519 -f ~/.ssh/id_ed25519 -N "" -C "$(whoami)@$(hostname)"
 curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
 sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+sudo apt-get update -yqq
+sudo apt-get install -yqq docker-ce docker-ce-cli containerd.io
 #cat <<-EOT > /etc/docker/daemon.json
 #{
 #    "dns": ["192.168.90.252"]
