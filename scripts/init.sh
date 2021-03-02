@@ -12,7 +12,7 @@ echo ${EXTERNAL_IP}
 export USR=rdwinter2
 CONF=/c/Users/${USR}/.ssh/config && grep $EXTERNAL_IP $CONF || sed -i.bak$(date +%s) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $CONF
 CONF=/home/${USR}/.ssh/config && grep $EXTERNAL_IP $CONF || sed -i.bak$(date --iso-8601=seconds) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $CONF
-
+sleep 5
 # without string interpolation
 ssh instance-1 'bash -s' <<'ENDSSH'
 mkdir -p ~/.certs
