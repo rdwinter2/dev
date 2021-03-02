@@ -1,7 +1,7 @@
 #!/bin/bash
 
 secrets/gcloud.sh 
-until gcloud compute instances describe instance-1 --zone=us-central1-a
+until gcloud compute instances describe instance-1 --zone=us-central1-a > /dev/null
 do
   echo "waiting for instance-1 creation ..."
   sleep 1
