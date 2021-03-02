@@ -31,7 +31,7 @@ $(ansible-vault view ~/.ansible/.logins/gitlab_flux_token)
 ENDGH
 chmod 600 ~/.logins/gl
 ENDSSH
-scp ~/.secrets/portainer_password instance-1:~/.secrets
+scp ~/.secrets/* instance-1:~/.secrets
 scp ~/.certs/*.crt instance-1:~/.certs
 scp ~/.certs/intermediate* instance-1:~/.certs
 scp secrets/promtail/* instance-1:~/promtail

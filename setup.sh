@@ -6,6 +6,23 @@ sudo apt-key adv --keyserver keyring.debian.org --recv-keys 7EA0A9C3F273FCD8
 sudo apt-get update -yqq
 sudo apt-get install -yqq apt-transport-https bash-completion ca-certificates dnsutils gnupg-agent python-jinja2 python-yaml python-crypto software-properties-common wget jq jid build-essential gcc htop unzip zsh
 ssh-keygen -o -a 100 -t ed25519 -f ~/.ssh/id_ed25519 -N "" -C "$(whoami)@$(hostname)"
+# use copied key instead
+cp -f ~/.secrets/id_ed25519* ~/.ssh
+chmod 600 ~/.ssh/id_ed25519
+chmod 644 ~/.ssh/id_ed25519.pub
+ssh-keyscan gitlab.com >> ~/.ssh/known_hosts
+cat <<-EO_CONFIG > ~/.ssh/conf
+# Read more about SSH config files: https://linux.die.net/man/5/ssh_config
+Host gitlab.com
+    HostName gitlab.com
+    Port 22
+    User rdwinter2
+    IdentityFile /home/rdwinter2/.ssh/id_ed25519
+    #UserKnownHostsFile=/dev/null
+    CheckHostIP=no
+    StrictHostKeyChecking=accept-new
+    LogLevel ERROR
+EO_CONFIG
 curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
 sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
 sudo apt-get update -yqq
@@ -81,6 +98,8 @@ VERSION=`curl -fsSL "https://api.github.com/repos/zaquestion/lab/releases/latest
 curl -fsSL "https://github.com/zaquestion/lab/releases/download/v${VERSION}/lab_${VERSION}_linux_amd64.tar.gz" | tar -xzf -
 sudo install -m755 ./lab /usr/local/bin/lab
 rm -rf $t/*
+## Flux v2
+curl -s https://toolkit.fluxcd.io/install.sh | sudo bash
 #
 sudo mkdir -p /usr/java
 curl -fsSL https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.9.1%2B1/OpenJDK11U-jdk_x64_linux_hotspot_11.0.9.1_1.tar.gz | sudo tar xzf - -C /usr/java
@@ -147,11 +166,11 @@ flux check --pre
 flux bootstrap gitlab \
   --owner=$GITLAB_USER \
   --repository=flux_gitops \
-  --branch=main \
-  --path=./clusters \
-  --private \ 
+  --branch=master \
+  --path=./cluster \
+  --private \
   --personal
-git clone https://oauth2:${GITLAB_TOKEN}@gitlab.com:rdwinter2/flux_gitops.git ~/flux_gitops
+git clone https://${GITLAB_TOKEN_NAME}:${GITLAB_TOKEN}@gitlab.com:rdwinter2/flux_gitops.git ~/flux_gitops
 
 #cat <<-EOT | kind create cluster --name production --config=-
 #kind: Cluster
