@@ -150,7 +150,7 @@ flux bootstrap gitlab \
   --path=./clusters \
   --private \ 
   --personal
-git clone git@gitlab.com:rdwinter2/flux_gitops.git ~/flux_gitops
+git clone https://oauth2:${GITLAB_TOKEN}@gitlab.com:rdwinter2/flux_gitops.git ~/flux_gitops
 
 #cat <<-EOT | kind create cluster --name production --config=-
 #kind: Cluster
