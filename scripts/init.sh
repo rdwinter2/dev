@@ -33,8 +33,7 @@ chmod 600 ~/.logins/gl
 ENDSSH
 scp ~/.secrets/portainer_password instance-1:~/.secrets
 scp ~/.certs/*.crt instance-1:~/.certs
-scp ~/.certs/intermediateCA_password instance-1:~/.certs
-scp ~/.certs/intermediate_ca.key instance-1:~/.certs
+scp ~/.certs/intermediate* instance-1:~/.certs
 scp secrets/promtail/* instance-1:~/promtail
 ssh instance-1 'bash -s' <<'ENDSSH'
 curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
