@@ -18,10 +18,10 @@ ssh instance-1 'bash -s' <<'ENDSSH'
 mkdir -p ~/.certs
 mkdir -p ~/.secrets
 mkdir -p ~/promtail
+mkdir -p ~/.logins
 ENDSSH
 # with string interpolation
 ssh instance-1 'bash -s' <<ENDSSH
-mkdir -p ~/.logins
 cat <<ENDGH > ~/.logins/gh
 $(ansible-vault view ~/.ansible/.logins/github_dev_token)
 ENDGH

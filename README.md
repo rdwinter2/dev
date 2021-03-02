@@ -25,7 +25,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
    * [Alternatively, you can specify the gateway and subnet to use](#alternatively-you-can-specify-the-gateway-and-subnet-to-use)
    * [docker network create --gateway 192.168.90.1 --subnet 192.168.90.0/24 traefik](#docker-network-create---gateway-192168901---subnet-19216890024-traefik)
 
-<!-- Added by: rdwinter2, at: Tue Mar  2 05:09:22 CST 2021 -->
+<!-- Added by: rdwinter2, at: Tue Mar  2 05:49:38 CST 2021 -->
 
 <!--te-->
 
@@ -44,11 +44,13 @@ exit
 #########################
 
 ##############################
+
 flushdns() {
   FLUSHDNS_COMMAND=$(expect -c "
     spawn /c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
-    expect \"PS Microsoft.PowerShell.Core*>*\"
+    expect \"rdwinter2\\dev>*\"
     send -- \"ipconfig /flushdns\r\"
+    expect \"rdwinter2\\dev>*\"
     send -- \"exit\r\"
     expect eof
   ")
