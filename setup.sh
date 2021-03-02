@@ -86,7 +86,7 @@ curl -fsSL https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/
 # export PATH=$PWD/jdk-11.0.9.1+1/bin:$PATH
 sudo curl -fsSL "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq '.tag_name' | sed 's/"//g')/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
-octant_vers=0.17.0
+octant_vers=$(curl -s https://api.github.com/repos/vmware-tanzu/octant/releases/latest | jq '.tag_name' | sed -e 's/"//g' -e 's/^v//g')
 sudo curl -fsSL -O https://github.com/vmware-tanzu/octant/releases/download/v${octant_vers}/octant_${octant_vers}_Linux-64bit.deb
 sudo apt-get install ./octant_${octant_vers}_Linux-64bit.deb
 curl -fsSL -O "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -100,6 +100,8 @@ curl -fsSL https://github.com/derailed/k9s/releases/download/v0.24.2/k9s_Linux_x
 sudo install --mode=755 --owner=root ./k9s /usr/local/bin
 sudo curl -fSL -o "/usr/local/bin/tk" "https://github.com/grafana/tanka/releases/download/v0.13.0/tk-linux-amd64"
 sudo chmod a+x "/usr/local/bin/tk"
+curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
+sudo install --mode=755 --owner=root ./kustomize /usr/local/bin
 popd
 pushd /opt
 curl -fsSL https://istio.io/downloadIstio | sudo sh -
