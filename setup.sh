@@ -10,7 +10,7 @@ ssh-keygen -o -a 100 -t ed25519 -f ~/.ssh/id_ed25519 -N "" -C "$(whoami)@$(hostn
 cp -f ~/.secrets/id_ed25519* ~/.ssh
 chmod 600 ~/.ssh/id_ed25519
 chmod 644 ~/.ssh/id_ed25519.pub
-ssh-keyscan gitlab.com >> ~/.ssh/known_hosts
+#ssh-keyscan gitlab.com >> ~/.ssh/known_hosts
 cat <<-EO_CONFIG > ~/.ssh/conf
 # Read more about SSH config files: https://linux.die.net/man/5/ssh_config
 Host gitlab.com
