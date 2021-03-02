@@ -26,6 +26,10 @@ cat <<ENDGH > ~/.logins/gh
 $(ansible-vault view ~/.ansible/.logins/github_dev_token)
 ENDGH
 chmod 600 ~/.logins/gh
+cat <<ENDGH > ~/.logins/gl
+$(ansible-vault view ~/.ansible/.logins/gitlab_flux_token)
+ENDGH
+chmod 600 ~/.logins/gl
 ENDSSH
 scp ~/.secrets/portainer_password instance-1:~/.secrets
 scp ~/.certs/*.crt instance-1:~/.certs

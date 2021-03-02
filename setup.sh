@@ -3,7 +3,7 @@
 # curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
 echo "Running script... 🚀"
 sudo apt-get update
-sudo apt-get install -y apt-transport-https bash-completion ca-certificates dnsutils gnupg-agent software-properties-common wget jq jid build-essential gcc htop zsh
+sudo apt-get install -y apt-transport-https bash-completion ca-certificates dnsutils gnupg-agent python-jinja2 python-yaml python-crypto software-properties-common wget jq jid build-essential gcc htop unzip zsh
 ssh-keygen -o -a 100 -t ed25519 -f ~/.ssh/id_ed25519 -N "" -C "$(whoami)@$(hostname)"
 curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
 sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
@@ -102,6 +102,20 @@ sudo curl -fSL -o "/usr/local/bin/tk" "https://github.com/grafana/tanka/releases
 sudo chmod a+x "/usr/local/bin/tk"
 curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
 sudo install --mode=755 --owner=root ./kustomize /usr/local/bin
+### Ansible
+sudo git clone https://github.com/ansible/ansible.git --recursive /opt/ansible
+
+mkdir --parents ~/.ansible/.logins
+echo "localhost ansible_connection=local" > ~/.ansible/ansible_hosts
+cat <<-EOT >> ~/.ansible/ansible.cfg
+[defaults]
+jinja2_extensions = jinja2.ext.do,jinja2.ext.i18n
+EOT
+echo $( openssl rand -base64 27 ) > ~/.ansible/.vault_pass
+chmod 700 ~/.ansible
+chmod 700 ~/.ansible/.logins
+chmod 600 ~/.ansible/.vault_pass
+. ~/.bashrc
 popd
 pushd /opt
 curl -fsSL https://istio.io/downloadIstio | sudo sh -
@@ -127,6 +141,15 @@ nodes:
 EOT
 kubectl cluster-info --context kind-dev
 
+. ~/.bashrc
+flux check --pre
+flux bootstrap gitlab \
+  --owner=$GITLAB_USER \
+  --repository=flux_gitops \
+  --branch=main \
+  --path=./clusters \
+  --personal
+git clone git@gitlab.com:rdwinter2/flux_gitops.git ~/flux_gitops
 
 #cat <<-EOT | kind create cluster --name production --config=-
 #kind: Cluster
@@ -149,8 +172,8 @@ kubectl cluster-info --context kind-dev
 #    protocol: TCP
 #EOT
 #kubectl cluster-info --context kind-production
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.4/manifests/namespace.yaml
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.4/manifests/metallb.yaml
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.5/manifests/namespace.yaml
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.5/manifests/metallb.yaml
 # On first install only
 kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
 export address_prefix=$(docker network inspect kind | jq ".[0].IPAM.Config[0].Gateway" | sed -e 's/"//g' | awk -F. '{print $1 "." $2}')
