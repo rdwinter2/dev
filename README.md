@@ -25,7 +25,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
    * [Alternatively, you can specify the gateway and subnet to use](#alternatively-you-can-specify-the-gateway-and-subnet-to-use)
    * [docker network create --gateway 192.168.90.1 --subnet 192.168.90.0/24 traefik](#docker-network-create---gateway-192168901---subnet-19216890024-traefik)
 
-<!-- Added by: rdwinter2, at: Tue Mar  2 08:27:31 CST 2021 -->
+<!-- Added by: rdwinter2, at: Wed Mar 10 02:20:39 CST 2021 -->
 
 <!--te-->
 
@@ -43,6 +43,8 @@ scripts/init.sh
 ##############################
 
 gcloud compute instances describe instance-1
+
+ssh instance-1
 
 #####################
 yes | gcloud compute instances delete instance-1 --zone=us-central1-a --delete-disks=all
