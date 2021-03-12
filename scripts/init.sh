@@ -14,6 +14,20 @@ CONF=/c/Users/${USR}/.ssh/config && grep $EXTERNAL_IP $CONF || sed -i.bak$(date 
 CONF=/home/${USR}/.ssh/config && grep $EXTERNAL_IP $CONF || sed -i.bak$(date --iso-8601=seconds) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $CONF
 sleep 5
 # without string interpolation
+RESULT=1
+x=50
+until [ $RESULT -eq 0 ] 
+do 
+date
+ssh instance-1  'bash -s' <<'ENDSSH'
+ls
+ENDSSH
+RESULT=$?
+((x--))
+echo "Trying " $x " more times..."
+if [[ $x -eq 0 ]]; then exit 500; fi
+done
+
 ssh instance-1 'bash -s' <<'ENDSSH'
 mkdir -p ~/.certs
 mkdir -p ~/.secrets
