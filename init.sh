@@ -26,6 +26,7 @@ RESULT=$?
 ((x--))
 echo "Trying " $x " more times..."
 if [[ $x -eq 0 ]]; then exit 500; fi
+sleep 1
 done
 
 ssh instance-1 'bash -s' <<'ENDSSH'
