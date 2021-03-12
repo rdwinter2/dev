@@ -168,11 +168,12 @@ flux check --pre
 flux bootstrap gitlab \
   --owner=$GITLAB_USER \
   --repository=flux_gitops \
-  --branch=master \
+  --branch=main \
   --path=./cluster \
   --private \
   --personal
-git clone https://${GITLAB_TOKEN_NAME}:${GITLAB_TOKEN}@gitlab.com:rdwinter2/flux_gitops.git ~/flux_gitops
+# git clone https://${GITLAB_TOKEN_NAME}:${GITLAB_TOKEN}@gitlab.com:rdwinter2/flux_gitops.git ~/flux_gitops
+git clone git@gitlab.com:rdwinter2/flux_gitops.git
 
 #cat <<-EOT | kind create cluster --name production --config=-
 #kind: Cluster
