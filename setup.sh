@@ -122,6 +122,7 @@ sudo curl -fSL -o "/usr/local/bin/tk" "https://github.com/grafana/tanka/releases
 sudo chmod a+x "/usr/local/bin/tk"
 curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
 sudo install --mode=755 --owner=root ./kustomize /usr/local/bin
+curl -fLo cs https://git.io/coursier-cli-"$(uname | tr LD ld)"; chmod +x cs; yes | ./cs setup
 ### Ansible
 sudo git clone https://github.com/ansible/ansible.git --recursive /opt/ansible
 
