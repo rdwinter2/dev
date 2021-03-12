@@ -162,6 +162,7 @@ EOT
 kubectl cluster-info --context kind-dev
 
 . ~/.bashrc
+. ~/.profile
 flux check --pre
 flux bootstrap gitlab \
   --owner=$GITLAB_USER \
