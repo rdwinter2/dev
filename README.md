@@ -25,7 +25,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
    * [Alternatively, you can specify the gateway and subnet to use](#alternatively-you-can-specify-the-gateway-and-subnet-to-use)
    * [docker network create --gateway 192.168.90.1 --subnet 192.168.90.0/24 traefik](#docker-network-create---gateway-192168901---subnet-19216890024-traefik)
 
-<!-- Added by: rdwinter2, at: Fri Mar 12 13:11:51 CST 2021 -->
+<!-- Added by: rdwinter2, at: Sun Mar 14 08:36:39 CDT 2021 -->
 
 <!--te-->
 
@@ -51,6 +51,9 @@ docker exec -it nexus bash -c "cat /nexus-data/admin.password; echo"
 
 #####################
 yes | gcloud compute instances delete instance-1 --zone=us-central1-a --delete-disks=all
+
+# put in a kill switch
+x=$(sleep 600; yes | gcloud compute instances delete instance-1 --zone=us-central1-a --delete-disks=all)&
 #####################
 ```
 

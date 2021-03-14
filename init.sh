@@ -1,8 +1,8 @@
 #!/bin/bash
 
 secrets/gcloud.sh 
-# put in a kill switch
-$(sleep 600; {yes | gcloud compute instances delete instance-1 --zone=us-central1-a --delete-disks=all})&
+# put in a kill switch (1 hour)
+x=$(sleep 3600; yes | gcloud compute instances delete instance-1 --zone=us-central1-a --delete-disks=all)&
 until gcloud compute instances describe instance-1 --zone=us-central1-a > /dev/null
 do
   echo "waiting for instance-1 creation ..."
