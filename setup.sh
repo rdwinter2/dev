@@ -210,11 +210,11 @@ echo "===================================================================="
 # kubectl get pods,serviceaccounts,daemonsets,deployments,roles,rolebindings -n metallb-system
 echo "===================================================================="
 
-. ~/.bashrc
-. ~/.profile
+export GITLAB_TOKEN=$(cat ~/.logins/gl)
+export GITLAB_USER=$(whoami)
 flux check --pre
 flux bootstrap gitlab \
-  --owner=$GITLAB_USER \
+  --owner=${GITLAB_USER} \
   --repository=flux_gitops \
   --branch=main \
   --path=./cluster \
