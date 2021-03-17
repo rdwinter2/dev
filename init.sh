@@ -52,6 +52,7 @@ scp ~/.secrets/* instance-1:~/.secrets
 scp ~/.certs/*.crt instance-1:~/.certs
 scp ~/.certs/intermediate* instance-1:~/.certs
 scp secrets/promtail/* instance-1:~/promtail
+scp ~/.gitconfig instance-1:~/.gitconfig
 ssh instance-1 'bash -s' <<'ENDSSH'
 curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
 # mv -f ~/promtail/* ~/dev/promtail
