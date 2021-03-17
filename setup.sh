@@ -160,21 +160,10 @@ nodes:
 - role: worker
 - role: worker
 EOT
-kubectl cluster-info --context kind-dev
+# kubectl cluster-info --context kind-dev
 
 . ~/.bashrc
 . ~/.profile
-flux check --pre
-flux bootstrap gitlab \
-  --owner=$GITLAB_USER \
-  --repository=flux_gitops \
-  --branch=main \
-  --path=./cluster \
-  --private \
-  --personal
-# git clone https://${GITLAB_TOKEN_NAME}:${GITLAB_TOKEN}@gitlab.com:rdwinter2/flux_gitops.git ~/flux_gitops
-git clone git@gitlab.com:rdwinter2/flux_gitops.git
-
 #cat <<-EOT | kind create cluster --name production --config=-
 #kind: Cluster
 #apiVersion: kind.x-k8s.io/v1alpha4
@@ -221,26 +210,39 @@ echo "===================================================================="
 # kubectl get pods,serviceaccounts,daemonsets,deployments,roles,rolebindings -n metallb-system
 echo "===================================================================="
 
-helm repo add traefik https://helm.traefik.io/traefik
-helm repo update
-kubectl create ns traefik
-helm install --namespace=traefik traefik traefik/traefik
-cat <<- EOT | kubectl apply -f -
-# dashboard.yaml
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: dashboard
-spec:
-  entryPoints:
-    - websecure
-  routes:
-    - match: Host(\`traefik.localhost\`) && (PathPrefix(\`/dashboard\`) || PathPrefix(\`/api\`))
-      kind: Rule
-      services:
-        - name: api@internal
-          kind: TraefikService
-EOT
+. ~/.bashrc
+. ~/.profile
+flux check --pre
+flux bootstrap gitlab \
+  --owner=$GITLAB_USER \
+  --repository=flux_gitops \
+  --branch=main \
+  --path=./cluster \
+  --private \
+  --personal
+# git clone https://${GITLAB_TOKEN_NAME}:${GITLAB_TOKEN}@gitlab.com:rdwinter2/flux_gitops.git ~/flux_gitops
+git clone git@gitlab.com:rdwinter2/flux_gitops.git
+
+#helm repo add traefik https://helm.traefik.io/traefik
+#helm repo update
+#kubectl create ns traefik
+#helm install --namespace=traefik traefik traefik/traefik
+#cat <<- EOT | kubectl apply -f -
+## dashboard.yaml
+#apiVersion: traefik.containo.us/v1alpha1
+#kind: IngressRoute
+#metadata:
+#  name: dashboard
+#spec:
+#  entryPoints:
+#    - websecure
+#  routes:
+#    - match: Host(\`traefik.localhost\`) && (PathPrefix(\`/dashboard\`) || PathPrefix(\`/api\`))
+#      kind: Rule
+#      services:
+#        - name: api@internal
+#          kind: TraefikService
+#EOT
 # curl -vik --resolve traefik.localhost:443:172.18.255.1 https://traefik.localhost/dashboard
 
 # The workflow is:
@@ -260,3 +262,5 @@ cat /tmp/homebrew.out
 echo "Run:: newgrp docker"
 echo "Run:: . ~/.profile"
 echo "Done. 👍"
+
+# kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.2.0/aio/deploy/recommended.yaml
