@@ -25,7 +25,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
    * [Alternatively, you can specify the gateway and subnet to use](#alternatively-you-can-specify-the-gateway-and-subnet-to-use)
    * [docker network create --gateway 192.168.90.1 --subnet 192.168.90.0/24 traefik](#docker-network-create---gateway-192168901---subnet-19216890024-traefik)
 
-<!-- Added by: rdwinter2, at: Sun Mar 14 08:36:39 CDT 2021 -->
+<!-- Added by: rdwinter2, at: Thu Mar 18 19:15:37 CDT 2021 -->
 
 <!--te-->
 
@@ -33,7 +33,9 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
 
 ```bash
 #####################
-./init.sh
+logfile=init_$(date --iso-8601=seconds).log
+echo "Logging to logs/${logfile}"
+./init.sh | tee logs/${logfile}
 #####################
 
 #########################  After configuring OpnSense

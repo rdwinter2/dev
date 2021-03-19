@@ -210,6 +210,9 @@ echo "===================================================================="
 # kubectl get pods,serviceaccounts,daemonsets,deployments,roles,rolebindings -n metallb-system
 echo "===================================================================="
 
+## Install ISTIO
+yes | istioctl install --set profile=demo
+
 export GITLAB_TOKEN=$(cat ~/.logins/gl)
 export GITLAB_USER=$(whoami)
 flux check --pre
