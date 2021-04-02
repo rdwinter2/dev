@@ -99,7 +99,10 @@ curl -fsSL "https://github.com/zaquestion/lab/releases/download/v${VERSION}/lab_
 sudo install -m755 ./lab /usr/local/bin/lab
 rm -rf $t/*
 ## Flux v2
-curl -s https://toolkit.fluxcd.io/install.sh | sudo bash
+#curl -s https://toolkit.fluxcd.io/install.sh | sudo bash
+VERSION=0.11.0
+curl -fsSL "https://github.com/fluxcd/flux2/releases/download/v${VERSION}/flux_${VERSION}_linux_amd64.tar.gz" | tar -xzf -
+sudo install -m755 ./flux /usr/local/bin
 #
 sudo mkdir -p /usr/java
 curl -fsSL https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.9.1%2B1/OpenJDK11U-jdk_x64_linux_hotspot_11.0.9.1_1.tar.gz | sudo tar xzf - -C /usr/java
