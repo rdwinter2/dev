@@ -119,7 +119,7 @@ curl -fsSL https://github.com/jenkins-x/jx-cli/releases/download/$(curl -s https
 sudo install --mode=755 --owner=root ./jx /usr/local/bin
 curl -fsSL -o ./kind https://kind.sigs.k8s.io/dl/v0.10.0/kind-linux-amd64
 sudo install --mode=755 --owner=root ./kind /usr/local/bin
-curl -fsSL https://github.com/derailed/k9s/releases/download/v0.24.2/k9s_Linux_x86_64.tar.gz | tar xzf - 
+curl -fsSL https://github.com/derailed/k9s/releases/download/v0.24.7/k9s_Linux_x86_64.tar.gz | tar xzf - 
 sudo install --mode=755 --owner=root ./k9s /usr/local/bin
 sudo curl -fSL -o "/usr/local/bin/tk" "https://github.com/grafana/tanka/releases/download/v0.13.0/tk-linux-amd64"
 sudo chmod a+x "/usr/local/bin/tk"
