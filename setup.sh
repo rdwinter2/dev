@@ -100,7 +100,7 @@ sudo install -m755 ./lab /usr/local/bin/lab
 rm -rf $t/*
 ## Flux v2
 #curl -s https://toolkit.fluxcd.io/install.sh | sudo bash
-VERSION=0.12.1
+VERSION=0.13.0
 curl -fsSL "https://github.com/fluxcd/flux2/releases/download/v${VERSION}/flux_${VERSION}_linux_amd64.tar.gz" | tar -xzf -
 sudo install -m755 ./flux /usr/local/bin
 #
