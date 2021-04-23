@@ -25,7 +25,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
    * [Alternatively, you can specify the gateway and subnet to use](#alternatively-you-can-specify-the-gateway-and-subnet-to-use)
    * [docker network create --gateway 192.168.90.1 --subnet 192.168.90.0/24 traefik](#docker-network-create---gateway-192168901---subnet-19216890024-traefik)
 
-<!-- Added by: rdwinter2, at: Thu Mar 18 19:15:37 CDT 2021 -->
+<!-- Added by: rdwinter2, at: Fri Apr 23 08:00:51 CDT 2021 -->
 
 <!--te-->
 
@@ -69,7 +69,7 @@ First, create a password for the root CA's key. Then create the root CA certific
 mkdir -p $HOME/.certs; pushd $HOME/.certs
 [[ -f rootCA_password ]] || echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1) > rootCA_password
 cat rootCA_password
-docker run -it --rm -v $PWD:/home/step smallstep/step-cli:0.16.0-rc.8 bash -c " \
+docker run -it --rm -v $PWD:/home/step smallstep/step-cli:0.15.16 bash -c " \
 step certificate create 'Offline Root CA' root_ca.crt root_ca.key --profile=root-ca \
 "
 ```
@@ -78,7 +78,7 @@ Next, create the intermediate cert for use by the subordinate CA.
 
 ```
 [[ -f intermediateCA_password ]] || echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1) > intermediateCA_password
-docker run -it --rm --user=$(id -u):$(id -g) -v $PWD:/home/step smallstep/step-cli:0.16.0-rc.8 bash -c " \
+docker run -it --rm --user=$(id -u):$(id -g) -v $PWD:/home/step smallstep/step-cli:0.15.16 bash -c " \
 step certificate create 'Example Intermediate CA 1' \
     intermediate_ca.crt intermediate_ca.key \
     --profile=intermediate-ca --ca ./root_ca.crt \
@@ -96,7 +96,7 @@ step certificate create 'Example Intermediate CA 2'  intermediate_ca2.crt interm
 Create a wildcard certificate for "*.example.web".
 
 ```
-docker run -it --rm -v $PWD:/home/step smallstep/step-cli:0.16.0-rc.8 bash -c " \
+docker run -it --rm -v $PWD:/home/step smallstep/step-cli:0.15.16 bash -c " \
 step certificate create 'example.web wildcard' \
     example.web.crt example.web.key \
     --profile=leaf --ca ./root_ca.crt \
@@ -110,7 +110,7 @@ step certificate create 'example.web wildcard' \
 Also, create a client certificate for connecting from Windows or WSL.
 
 ```
-docker run -it --rm -v $PWD:/home/step smallstep/step-cli:0.16.0-rc.8 bash -c " \
+docker run -it --rm -v $PWD:/home/step smallstep/step-cli:0.15.16 bash -c " \
 step certificate create client_crt \
     client_crt.crt client_crt.key \
     --profile=leaf --ca ./root_ca.crt \
@@ -126,7 +126,7 @@ Convert the X.509 client certificate into a PFX and import it into Windows.
 openssl pkcs12 -export -out client_crt.pfx -inkey client_crt.key -in client_crt.crt -certfile root_ca.crt
 
 [[ -f client_crt_password ]] || echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1) > client_crt_password
-docker run -it --rm -v $PWD:/home/step smallstep/step-cli:0.16.0-rc.8 bash -c " \
+docker run -it --rm -v $PWD:/home/step smallstep/step-cli:0.15.16 bash -c " \
 step certificate p12 client_crt.p12 \
     client_crt.crt client_crt.key \
     --ca root_ca.crt \

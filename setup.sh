@@ -145,8 +145,9 @@ chmod 600 ~/.ansible/.vault_pass
 . ~/.bashrc
 popd
 pushd /opt
-curl -fsSL https://istio.io/downloadIstio | sudo sh -
-sudo mv istio-* istio
+VERSION=$(curl -fsSL "https://api.github.com/repos/istio/istio/releases/latest" | jq '.tag_name' | sed 's/"//g')
+curl -fsSL https://github.com/istio/istio/releases/download/${VERSION}/istio-${VERSION}-linux-amd64.tar.gz | sudo tar -xzf -
+sudo ln -s /opt/istio-${VERSION} istio
 sudo chmod o+rx /opt/istio /opt/istio/bin /opt/istio/tools
 sudo chmod o+r /opt/istio/manifest.yaml
 export PATH="$PATH:/opt/istio/bin"
