@@ -87,20 +87,21 @@ $(~/dev/scripts/homebrew.sh 2>&1 | tee /tmp/homebrew.out | cat > /dev/null) &
 pids[1]=$!
 t=$(mktemp -d); pushd $t
 # GitHub cli - gh
-VERSION=`curl -fsSL "https://api.github.com/repos/cli/cli/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-`
+VERSION=$(curl -fsSL "https://api.github.com/repos/cli/cli/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-`)
 curl -fsSL -O https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_amd64.tar.gz
 tar xvf ./gh_${VERSION}_linux_amd64.tar.gz
 sudo install --mode=755 --owner=root ./gh_${VERSION}_linux_amd64/bin/gh /usr/local/bin/
 sudo cp -r ./gh_${VERSION}_linux_amd64/share/man/man1/* /usr/share/man/man1/
 rm -rf ./gh_${VERSION}_linux_amd64*
 # GitLab cli - lab
-VERSION=`curl -fsSL "https://api.github.com/repos/zaquestion/lab/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-`
+VERSION=$(curl -fsSL "https://api.github.com/repos/zaquestion/lab/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-)
 curl -fsSL "https://github.com/zaquestion/lab/releases/download/v${VERSION}/lab_${VERSION}_linux_amd64.tar.gz" | tar -xzf -
 sudo install -m755 ./lab /usr/local/bin/lab
-rm -rf $t/*
+rm -rf {LICENSE,README.md,lab}
+
 ## Flux v2
 #curl -s https://toolkit.fluxcd.io/install.sh | sudo bash
-VERSION=0.13.0
+VERSION=$(curl -fsSL "https://api.github.com/repos/fluxcd/flux2/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-)
 curl -fsSL "https://github.com/fluxcd/flux2/releases/download/v${VERSION}/flux_${VERSION}_linux_amd64.tar.gz" | tar -xzf -
 sudo install -m755 ./flux /usr/local/bin
 #
@@ -119,7 +120,8 @@ curl -fsSL https://github.com/jenkins-x/jx-cli/releases/download/$(curl -s https
 sudo install --mode=755 --owner=root ./jx /usr/local/bin
 curl -fsSL -o ./kind https://kind.sigs.k8s.io/dl/v0.10.0/kind-linux-amd64
 sudo install --mode=755 --owner=root ./kind /usr/local/bin
-curl -fsSL https://github.com/derailed/k9s/releases/download/v0.24.7/k9s_Linux_x86_64.tar.gz | tar xzf - 
+VERSION=$(curl -fsSL "https://api.github.com/repos/derailed/k9s/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-)
+curl -fsSL https://github.com/derailed/k9s/releases/download/v${VERSION}/k9s_Linux_x86_64.tar.gz | tar xzf - 
 sudo install --mode=755 --owner=root ./k9s /usr/local/bin
 sudo curl -fSL -o "/usr/local/bin/tk" "https://github.com/grafana/tanka/releases/download/v0.13.0/tk-linux-amd64"
 sudo chmod a+x "/usr/local/bin/tk"
