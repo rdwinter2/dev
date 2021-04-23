@@ -104,6 +104,7 @@ rm -rf {LICENSE,README.md,lab}
 VERSION=$(curl -fsSL "https://api.github.com/repos/fluxcd/flux2/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-)
 curl -fsSL "https://github.com/fluxcd/flux2/releases/download/v${VERSION}/flux_${VERSION}_linux_amd64.tar.gz" | tar -xzf -
 sudo install -m755 ./flux /usr/local/bin
+rm -rf flux
 #
 sudo mkdir -p /usr/java
 curl -fsSL https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.9.1%2B1/OpenJDK11U-jdk_x64_linux_hotspot_11.0.9.1_1.tar.gz | sudo tar xzf - -C /usr/java
