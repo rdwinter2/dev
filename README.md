@@ -275,6 +275,12 @@ docker exec -it nexus sh -c "cat /nexus-data/admin.password;echo"
 
 ## On Windows 
 
+Create a ssh key \
+
+```
+ssh-keygen -t ed25519
+```
+
 If the External IP of the GCP VM changes:
 
 1. Open PowerShell as an administrator and run `ipconfig /flushdns`.
