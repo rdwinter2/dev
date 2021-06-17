@@ -87,7 +87,7 @@ $(~/dev/scripts/homebrew.sh 2>&1 | tee /tmp/homebrew.out | cat > /dev/null) &
 pids[1]=$!
 t=$(mktemp -d); pushd $t
 # GitHub cli - gh
-VERSION=$(curl -fsSL "https://api.github.com/repos/cli/cli/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-`)
+VERSION=$(curl -fsSL "https://api.github.com/repos/cli/cli/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-)
 curl -fsSL -O https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_amd64.tar.gz
 tar xvf ./gh_${VERSION}_linux_amd64.tar.gz
 sudo install --mode=755 --owner=root ./gh_${VERSION}_linux_amd64/bin/gh /usr/local/bin/
