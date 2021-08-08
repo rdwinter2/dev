@@ -1,0 +1,445 @@
+version: "3.8"
+
+services:
+  traefik:
+    container_name: traefik
+    hostname: ${TRAEFIK_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/library/traefik:${TRAEFIK_TAG}@sha256:${TRAEFIK_DIGEST}
+    depends_on:
+      - step-ca
+      - coredns
+    restart: unless-stopped
+    command: # CLI arguments
+      - --ping=false
+      - --global.checkNewVersion=false
+      - --global.sendAnonymousUsage=false
+      - --entrypoints.http.address=:80
+      - --entrypoints.https.address=:443
+      - --entrypoints.https.http.tls.options=tls-opts@file
+      - --entrypoints.step-ca.address=:8443
+      - --api=true
+      # - --api.insecure=true
+      - --api.dashboard=true
+      # - --ping=true
+      # - --serversTransport.insecureSkipVerify=true
+      - --log=true
+      - --log.level=DEBUG # (Default: error) DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+      - --accessLog=true
+      - --accessLog.filePath=/traefik.log
+      - --accessLog.bufferingSize=100 # Configuring a buffer of 100 lines
+      - --accessLog.filters.statusCodes=400-499
+      - --providers.docker=true
+      - --providers.docker.endpoint=unix:///var/run/docker.sock # Use Docker Socket Proxy instead for improved security
+      # - --providers.docker.endpoint=tcp://socket-proxy:2375
+      # Automatically set Host rule for services
+      # - --providers.docker.defaultrule=Host(`{{ index .Labels "com.docker.compose.service" }}.$DOMAINNAME`)
+      - --providers.docker.exposedByDefault=false
+      # - --providers.file.filename=/etc/traefik/config/dyn-conf.yml
+      #- --providers.docker.useBindPortIP=true
+      - --providers.docker.network=traefik
+      - --entrypoints.http.forwardedHeaders.insecure
+      - --entrypoints.https.http.tls.options=tls-opts@file
+      - --providers.file.directory=/rules # Load dynamic configuration from one or more .toml or .yml files in a directory
+      #- --providers.file.directory=/rules/traefik-rules.git/rules # Load dynamic configuration from one or more .toml or .yml files in a directory
+      - --providers.file.watch=true # Only works on top level files in the rules folder
+      #- --metrics.prometheus=true
+      #- --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
+      - --serversTransport.rootCAs=/rootCA/${ROOT_CA_CERT}
+      - --certificatesResolvers.step.acme.email=${ADMIN_EMAIL}
+      - --certificatesresolvers.step.acme.caServer=https://${CA_SERVER_IP_PORT}/acme/${ACME_PROVIDER}/directory
+      - --certificatesResolvers.step.acme.httpChallenge.entryPoint=http
+      - --certificatesresolvers.step.acme.storage=/acme/acme.json
+      #- --tls.stores.default.defaultCertificate.certFile=/certs/${DOMAINNAME}.crt
+      #- --tls.stores.default.defaultCertificate.keyFile=/certs/${DOMAINNAME}.key
+    environment:
+      - LEGO_CA_CERTIFICATES=/rootCA/${ROOT_CA_CERT}
+      - TZ=$TZ
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro" # Use Docker Socket Proxy instead for improved security
+      - traefik-acme:/acme
+      - "./certs:/rootCA:ro"
+      - ${TRAEFIK_GIT_SYNC_DIR}:/rules
+      - $PWD/logs/traefik.log:/traefik.log # for fail2ban - make sure to touch file before starting container
+      #- "./secrets:/secrets/"
+      #- "./certs:/certs/"
+    networks:
+      traefik:
+        ipv4_address: ${TRAEFIK_IP} # You can specify a static IP
+    dns:
+      - ${COREDNS_IP}
+    dns_search: ${DOMAINNAME}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.http-catchall.entrypoints=http"
+      - "traefik.http.routers.http-catchall.rule=HostRegexp(`{any:.+}`)"
+      - "traefik.http.routers.http-catchall.middlewares=https_redirect"
+      - "traefik.http.middlewares.https_redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https_redirect.redirectscheme.permanent=true"
+      #traefik dashboard rules
+      - "traefik.http.routers.dashboard.entrypoints=https"
+      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_SERVICE_NAME}.${DOMAINNAME}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
+      - "traefik.http.routers.dashboard.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.tls.certResolver=step"
+
+  step-ca:
+    container_name: step-ca
+    hostname: ${STEP_CA_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/smallstep/step-ca:${STEP_CA_TAG}@sha256:${STEP_CA_DIGEST}
+    depends_on:
+      - coredns
+    restart: unless-stopped
+    expose:
+    - "8443"
+    labels:
+     - "traefik.enable=true"
+     - "traefik.tcp.routers.step-ca.rule=HostSNI(`${STEP_CA_SERVICE_NAME}.${DOMAINNAME}`)"
+     - "traefik.tcp.routers.step-ca.service=step-ca"
+     - "traefik.tcp.routers.step-ca.tls.passthrough=true"
+     - "traefik.tcp.services.step-ca.loadbalancer.server.port=8443"
+    volumes:
+      - "step-ca:/home/step"
+      - "./scripts/entrypoint-step-ca.sh:/usr/local/bin/entrypoint-step-ca.sh"
+      - "./secrets:/secrets/"
+      - "./certs:/certs/"
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    environment:
+      - STEPDEBUG=1
+      - DEFAULT_CERT_VALIDITY=${DEFAULT_CERT_VALIDITY:-720h}
+      - MAX_CERT_VALIDITY=${MAX_CERT_VALIDITY:-2160h}
+    entrypoint: ["bash", "/usr/local/bin/entrypoint-step-ca.sh", "$DNSNAMES", "$CA_SERVER", "$RESOLVER", "$SUBORDINATE_CERT", "$SUBORDINATE_KEY", "$SUB_SIGNED_BY_CERT"]
+    stop_grace_period: 30s
+    networks:
+      traefik:
+        ipv4_address: ${STEP_CA_IP}
+    dns:
+      - ${COREDNS_IP}
+    dns_search: ${DOMAINNAME}
+
+  coredns:
+    container_name: coredns
+    hostname: ${COREDNS_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/coredns/coredns:${COREDNS_TAG}@sha256:${COREDNS_DIGEST}
+    restart: unless-stopped
+    expose:
+      - "53"
+      - "53/udp"
+    volumes:
+      - ./Corefile:/Corefile
+      - "./config:/etc/coredns"
+      - ${COREDNS_GIT_SYNC_DIR}:/coreDNS
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    networks:
+      traefik:
+        ipv4_address: ${COREDNS_IP}
+
+  nexus:
+    container_name: nexus
+    hostname: ${NEXUS_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/sonatype/nexus3:${NEXUS_TAG}@sha256:${NEXUS_DIGEST}
+    depends_on:
+      - traefik
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nexus.entrypoints=https"
+      - "traefik.http.routers.nexus.rule=Host(`${NEXUS_SERVICE_NAME}.${DOMAINNAME}`)"
+      - "traefik.http.routers.nexus.service=nexus"
+      - "traefik.http.routers.nexus.tls=true"
+      - "traefik.http.routers.nexus.tls.certResolver=step"
+      - "traefik.http.services.nexus.loadbalancer.server.port=8081"
+      - "traefik.http.routers.nexus.middlewares=chain-no-auth@file"
+      #- "traefik.http.routersnexus.middlewares=nexus-redirect@docker,chain-oauth@file"
+      #- "traefik.http.routers.nexus-http.rule=Host(`${NEXUS_SERVICE_NAME}.${DOMAINNAME}`)"
+      #- "traefik.http.routers.nexus-http.service=nexus-http"
+      #- "traefik.http.routers.nexus-http.entrypoints=http"
+      #- "traefik.http.services.nexus-http.loadbalancer.server.port=8081"
+      ## Update to have priority greater than http-catchall rule.
+      #- "traefik.http.routers.nexus-http.priority=27"
+    volumes:
+      - nexus-data:/nexus-data
+      - ./deploy:/opt/sonatype/nexus/deploy/
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    environment:
+      - INSTALL4J_ADD_VM_PARAMS=-Xms2048m -Xmx2g -XX:MaxDirectMemorySize=3g
+    networks:
+      traefik:
+        ipv4_address: ${NEXUS_IP}
+    dns:
+      - ${COREDNS_IP}
+    dns_search: ${DOMAINNAME}
+
+  gitlab:
+    container_name: gitlab
+    hostname: ${GITLAB_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/gitlab/gitlab-ce:${GITLAB_TAG}@sha256:${GITLAB_DIGEST}
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url = 'https://${GITLAB_SERVICE_NAME}.${DOMAINNAME}'
+        registry_external_url 'https://${GITLAB_REGISTRY_SERVICE_NAME}.${DOMAINNAME}'
+        pages_external_url 'https://${GITLAB_PAGES_SERVICE_NAME}.${DOMAINNAME}'
+        nginx['redirect_http_to_https'] = false
+        nginx['listen_port'] = 80
+        nginx['listen_https'] = false
+        nginx['proxy_set_headers'] = {'X-Forwarded-Proto' => 'https', 'X-Forwarded-Ssl' => 'on'}
+        gitlab_rails['registry_enabled'] = true
+        registry['enable'] = true
+        registry_nginx['enable'] = true
+        registry_nginx['listen_port'] = 15001
+        registry_nginx['listen_https'] = false
+        registry_nginx['proxy_set_headers'] = {"X-Forwarded-Proto" => "https","X-Forwarded-Ssl" => "on"}
+        pages_nginx['listen_port'] = 15002
+        pages_nginx['listen_https'] = false
+        pages_nginx['proxy_set_headers'] = {"X-Forwarded-Proto" => "https","X-Forwarded-Ssl" => "on"}
+        gitlab_pages['inplace_chroot'] = true
+        nginx['client_max_body_size'] = '2G'
+        unicorn['worker_timeout'] = 60
+        unicorn['worker_processes'] = 4
+        sidekiq['concurrency'] = 15
+        postgresql['shared_buffers'] = "512MB"
+        gitlab_rails['initial_root_password'] = 'password'
+        gitlab_rails['artifacts_enabled'] = true
+        gitlab_rails['artifacts_path'] = "/var/opt/gitlab/gitlab-artifacts"
+        gitlab_rails['lfs_enabled'] = true
+        gitlab_rails['backup_keep_time'] = 172600
+        gitlab_ci['backup_keep_time'] = 172600
+        gitlab_rails['ldap_enabled'] = true
+        gitlab_rails['ldap_servers'] = YAML.load <<-'EOS'
+          main:
+            label: 'LDAP'
+            host: '${LDAP_HOST}'
+            port: 389
+            uid: 'sAMAccountName'
+            bind_dn: '${LDAP_USER}@${DOMAINNAME}'
+            password: '${LDAP_USER_PASSWORD}'
+            encryption: 'plain'
+            verify_certificates: false
+            active_directory: true
+            base: '${LDAP_BASE}'
+        EOS
+    expose:
+      - "80"
+      #- "22"
+    volumes:
+      - gitlab_config:/etc/gitlab
+      - gitlab_logs:/var/log/gitlab
+      - gitlab_data:/var/opt/gitlab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gitlab.rule=Host(`${GITLAB_SERVICE_NAME}.${DOMAINNAME}`)"
+      - "traefik.http.routers.gitlab.service=gitlab"
+      - "traefik.http.routers.gitlab.entrypoints=https"
+      - "traefik.http.routers.gitlab.tls=true"
+      - "traefik.http.routers.gitlab.tls.certResolver=step"
+      - "traefik.http.services.gitlab.loadbalancer.server.port=80"
+      ## Middlewares
+      - "traefik.http.routers.gitlab.middlewares=chain-no-auth@file" # No Authentication
+#      - "traefik.http.routers.portainer.middlewares=chain-basic-auth@file" # Basic Authentication
+#      - "traefik.http.routers.portainer.middlewares=chain-oauth@file" # Google OAuth 2.0
+
+      # ssh inbound requests  
+      # Since traefik (well tcp actually) doesn't pass Server Name Information (SNI)
+      # We can only have 1 git server with ssh enabled on port 22 of the docker host.
+      #- "traefik.tcp.routers.gitlab-ssh.entrypoints=ssh"
+      #- "traefik.tcp.services.gitlab-ssh.loadbalancer.server.port=22"
+      #- "traefik.tcp.routers.gitlab-ssh.rule=HostSNI(`*`)"  #`*` listens for ANY connections on 22
+      #- "traefik.tcp.routers.gitlab-ssh.service=gitlab-ssh"
+    networks:
+      traefik:
+        ipv4_address: ${GITLAB_IP}
+    restart: unless-stopped
+    dns:
+      - ${COREDNS_IP}
+    dns_search: ${DOMAINNAME}
+
+# Portainer - WebUI for Containers
+  portainer:
+    container_name: portainer
+    hostname: ${PORTAINER_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/portainer/portainer-ce:${PORTAINER_TAG}@sha256:${PORTAINER_DIGEST}
+    restart: unless-stopped
+    command: --admin-password "$$2y$$05$$Z8GTyIFi2oPNHeSW9lxBIeW4TRbULUGvPPGMpuCtaVmvidukTDWaS" -H unix:///var/run/docker.sock
+    networks:
+      traefik:
+        ipv4_address: ${PORTAINER_IP}
+    dns:
+      - ${COREDNS_IP}
+    dns_search: ${DOMAINNAME}
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer-data:/data
+      #- $HOME/.secrets/portainer_password:/tmp/portainer_password:ro
+    environment:
+      - TZ=$TZ
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`${PORTAINER_SERVICE_NAME}.${DOMAINNAME}`)"
+      - "traefik.http.routers.portainer.service=portainer"
+      - "traefik.http.routers.portainer.entrypoints=https"
+      - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.routers.portainer.tls.certResolver=step"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      ## Middlewares
+      - "traefik.http.routers.portainer.middlewares=chain-no-auth@file" # No Authentication
+#      - "traefik.http.routers.portainer.middlewares=chain-basic-auth@file" # Basic Authentication
+#      - "traefik.http.routers.portainer.middlewares=chain-oauth@file" # Google OAuth 2.0
+
+  whoami:
+    container_name: whoami
+    hostname: whoami
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/containous/whoami:${WHOAMI_TAG}@sha256:${WHOAMI_DIGEST}
+    restart: unless-stopped
+    networks:
+      traefik:
+        ipv4_address: ${WHOAMI_IP}
+    dns:
+      - ${COREDNS_IP}
+    dns_search: ${DOMAINNAME}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`${WHOAMI_SERVICE_NAME}.${DOMAINNAME}`)"
+      - "traefik.http.routers.whoami.service=whoami"
+      - "traefik.http.routers.whoami.entrypoints=https"
+      - "traefik.http.routers.whoami.middlewares=chain-no-auth@file"
+      #- "traefik.http.routers.whoami.middlewares=whoami"
+      #- "traefik.http.middlewares.whoami.stripPrefix.prefixes=/whoami"
+      - "traefik.http.routers.whoami.tls=true"
+      - "traefik.http.routers.whoami.tls.certResolver=step"
+      - "traefik.http.services.whoami.loadbalancer.server.port=80"
+
+  promtail: 
+    container_name: promtail
+    hostname: promtail
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/grafana/promtail:${PROMTAIL_TAG}@sha256:${PROMTAIL_DIGEST}
+    networks:
+      - loki
+    volumes:
+      - $PWD/promtail/config.yaml:/etc/promtail/config.yaml
+      - /var/log:/var/log
+    user: "0:0"
+    command: -config.file=/etc/promtail/config.yaml
+  #  networks:
+  #    - loki
+
+  #loki:
+  #  container_name: loki 
+  #  hostname: loki
+  #  domainname: ${DOMAINNAME}
+  #  image: ${REGISTRY}/grafana/loki:${LOKI_TAG}@sha256:${LOKI_DIGEST}
+  #  restart: unless-stopped
+  #  ports:
+  #    - "3100:3100"
+  #  command: -config.file=/etc/loki/local-config.yaml
+  #  networks:
+  #    - loki
+
+  #grafana:
+  #  container_name: grafana
+  #  hostname: grafana
+  #  domainname: ${DOMAINNAME}
+  #  image: ${REGISTRY}/grafana/grafana:${GRAFANA_TAG}@sha256:${GRAFANA_DIGEST}
+  #  logging:
+  #    driver: loki
+  #    options:
+  #      loki-url: ${LOKI_URL}
+  #  #ports:
+  #  #  - "3000:3000"
+  #  networks:
+  #    loki:
+  #    traefik:
+  #      ipv4_address: ${GRAFANA_IP}
+  #  dns:
+  #    - ${COREDNS_IP}
+  #  dns_search: ${DOMAINNAME}
+  #  labels:
+  #    - "traefik.enable=true"
+  #    - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_SERVICE_NAME}.${DOMAINNAME}`)"
+  #    - "traefik.http.routers.grafana.service=grafana"
+  #    - "traefik.http.routers.grafana.entrypoints=https"
+  #    - "traefik.http.routers.grafana.middlewares=chain-no-auth@file"
+  #    - "traefik.http.routers.grafana.tls=true"
+  #    - "traefik.http.routers.grafana.tls.certResolver=step"
+  #    - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+networks:
+  traefik:
+    external:
+      name: traefik
+  keycloak:
+    external: 
+      name: keycloak
+  mattermost:
+    external: 
+      name: mattermost
+  mongo:
+    external:
+      name: mongo
+  loki:
+    external:
+      true
+
+volumes:
+  step-ca:
+    external: true
+  traefik-acme:
+    external: true
+  nexus-data:
+    external: true
+  gitlab_config:
+    external: true
+  gitlab_logs:
+    external: true
+  gitlab_data:
+    external: true
+  gitlab-runner_conf:
+    external: true
+  keycloak_postgres_data:
+    external: true
+  mattermost_config:
+    external: true
+  mattermost_data:
+    external: true
+  mattermost_logs:
+    external: true
+  mattermost_plugins:
+    external: true
+  mattermost_client_plugins:
+    external: true
+  mattermost_postgresql_data:
+    external: true
+  mattermost_postgresql_dump:
+    external: true
+  mongo_data:
+    external: true  
+  mongo_express_data:
+    external: true 
+  nifi-logs:
+    external: true
+  nifi-conf:
+    external: true
+  nifi-database_repository:
+    external: true
+  nifi-flowfile_repository:
+    external: true
+  nifi-content_repository:
+    external: true
+  nifi-provenance_repository:
+    external: true
+  nifi-state:
+    external: true
+  portainer-data:
+    external: true

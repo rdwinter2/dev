@@ -63,78 +63,34 @@ x=$(sleep 600; yes | gcloud compute instances delete instance-1 --zone=us-centra
 
 Create an offline X.509 Certificate Authority on Windows Subsystem for Linux (WSL). 
 
-First, create a password for the root CA's key. Then create the root CA certificate and key, supplying the password when prompted.
-
 ```
-mkdir -p $HOME/.certs; pushd $HOME/.certs
-[[ -f rootCA_password ]] || echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1) > rootCA_password
-cat rootCA_password
-docker run -it --rm -v $PWD:/home/step smallstep/step-cli:0.15.16 bash -c " \
-step certificate create 'Offline Root CA' root_ca.crt root_ca.key --profile=root-ca \
-"
+scripts/generateCerts.sh
 ```
 
-Next, create the intermediate cert for use by the subordinate CA. 
+You can view your certificates with 
 
 ```
-[[ -f intermediateCA_password ]] || echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1) > intermediateCA_password
-docker run -it --rm --user=$(id -u):$(id -g) -v $PWD:/home/step smallstep/step-cli:0.15.16 bash -c " \
-step certificate create 'Example Intermediate CA 1' \
-    intermediate_ca.crt intermediate_ca.key \
-    --profile=intermediate-ca --ca ./root_ca.crt \
-    --ca-key <(step crypto key format --no-password --insecure --pem \
-               --password-file <(cat rootCA_password) ./root_ca.key) \
-    --no-password --insecure \
-"
-step certificate create 'Example Intermediate CA 2'  intermediate_ca2.crt intermediate_ca2.key --profile=intermediate-ca \
-   --ca ./root_ca.crt \
-   --ca-key <(step crypto key format --no-password --insecure --pem \
-            --password-file <(cat rootCA_password) ./root_ca.key) \
-   --san Example_Intermediate_CA_2
-```
-
-Create a wildcard certificate for "*.example.web".
-
-```
-docker run -it --rm -v $PWD:/home/step smallstep/step-cli:0.15.16 bash -c " \
-step certificate create 'example.web wildcard' \
-    example.web.crt example.web.key \
-    --profile=leaf --ca ./root_ca.crt \
-    --ca-key <(step crypto key format --no-password --insecure --pem \
-               --password-file <(cat rootCA_password) ./root_ca.key) \
-    --san *.example.web \
-    --no-password --insecure --not-after 2160h \
-"
-```
-
-Also, create a client certificate for connecting from Windows or WSL.
-
-```
-docker run -it --rm -v $PWD:/home/step smallstep/step-cli:0.15.16 bash -c " \
-step certificate create client_crt \
-    client_crt.crt client_crt.key \
-    --profile=leaf --ca ./root_ca.crt \
-    --ca-key <(step crypto key format --no-password --insecure --pem \
-               --password-file <(cat rootCA_password) ./root_ca.key) \
-    --no-password --insecure --not-after 2160h \
-"
+docker run -it --rm --user=$(id -u):$(id -g) -v $HOME/.certs:/home/step smallstep/step-cli:0.16.1 bash -c " \
+step certificate inspect root_ca.crt"
 ```
 
 Convert the X.509 client certificate into a PFX and import it into Windows.
 
 ```
-openssl pkcs12 -export -out client_crt.pfx -inkey client_crt.key -in client_crt.crt -certfile root_ca.crt
 
-[[ -f client_crt_password ]] || echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1) > client_crt_password
-docker run -it --rm -v $PWD:/home/step smallstep/step-cli:0.15.16 bash -c " \
+
+
+[[ -f clientCert_passwd ]] || \
+echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1) > client_crt_password
+docker run -it --rm -v $PWD:/home/step smallstep/step-cli:0.16.1 bash -c " \
 step certificate p12 client_crt.p12 \
     client_crt.crt client_crt.key \
-    --ca root_ca.crt \
-    --password-file client_crt_password \
+    --ca=root_ca.crt \
+    --password-file=clientCert_password \
 "
 ```
 
-Load `root_ca.crt` and `client_crt.p12` into the browser's trust store.
+Load `root_ca.crt`, `intermediate_ca.crt`, and `client.p12` into the browser's trust store.
 
 After creating a VM and running the setup.sh script, load the `root_ca.crt` and `intermediate_ca.crt` in the VM's trust store.
 

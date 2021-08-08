@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  step-ca:
+    container_name: step-ca
+    hostname: ${STEP_CA}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/smallstep/step-ca:${STEP_CA_TAG}@sha256:${STEP_CA_DIGEST}
+    depends_on:
+      - coredns
+    restart: unless-stopped
+    expose:
+    - "8443"
+    labels:
+     - "traefik.enable=true"
+     - "traefik.tcp.routers.step-ca.rule=HostSNI(`${STEP_CA}.${DOMAINNAME}`)"
+     - "traefik.tcp.routers.step-ca.service=step-ca"
+     - "traefik.tcp.routers.step-ca.tls.passthrough=true"
+     - "traefik.tcp.services.step-ca.loadbalancer.server.port=8443"
+    volumes:
+      - "step-ca:/home/step"
+      - "./scripts/entrypoint-step-ca.sh:/usr/local/bin/entrypoint-step-ca.sh"
+      - "./secrets:/secrets/"
+      - "./certs:/certs/"
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    environment:
+      - STEPDEBUG=1
+      - DEFAULT_CERT_VALIDITY=${DEFAULT_CERT_VALIDITY:-720h}
+      - MAX_CERT_VALIDITY=${MAX_CERT_VALIDITY:-2160h}
+    entrypoint: ["bash", "/usr/local/bin/entrypoint-step-ca.sh", "$DNSNAMES", "$CA_SERVER", "$RESOLVER", "$SUBORDINATE_CERT", "$SUBORDINATE_KEY", "$SUB_SIGNED_BY_CERT"]
+    stop_grace_period: 30s
+    networks:
+      traefik:
+        ipv4_address: ${STEP_CA_IP}
+    dns:
+      - ${COREDNS_IP}
+    dns_search: ${DOMAINNAME}
+
+networks:
+  traefik:
+    external:
+      name: traefik
+
+volumes:
+  step-ca:
+    external: true

@@ -158,7 +158,7 @@ popd
 newgrp docker
 docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
 
-cat <<-EOT | kind create cluster --name dev --image kindest/node:v1.20.2@sha256:8f7ea6e7642c0da54f04a7ee10431549c0257315b3a634f6ef2fecaaedb19bab --config=-
+cat <<-EOT | kind create cluster --name dev --image kindest/node:v1.22.0@sha256:b8bda84bb3a190e6e028b1760d277454a72267a5454b57db34437c34a588d047 --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:

@@ -1,0 +1,94 @@
+version: "3.8"
+
+services:
+  traefik:
+    container_name: traefik
+    hostname: ${TRAEFIK}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/library/traefik:${TAG}@sha256:${DIGEST}
+    restart: unless-stopped
+    command: # CLI arguments
+      - --ping=false
+      - --global.checkNewVersion=false
+      - --global.sendAnonymousUsage=false
+      - --entrypoints.http.address=:80
+      - --entrypoints.https.address=:443
+    #  - --entrypoints.https.http.tls.options=tls-opts@file
+      - --entrypoints.http.forwardedHeaders.insecure
+    #  - --entrypoints.step-ca.address=:8443
+      - --api=true
+      # - --api.insecure=true
+      - --api.dashboard=true
+      # - --serversTransport.insecureSkipVerify=true
+      - --log=true
+      - --log.level=INFO # (Default: error) DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+    #  - --accessLog=true
+    #  - --accessLog.filePath=/traefik.log
+    #  - --accessLog.bufferingSize=100 # Configuring a buffer of 100 lines
+    #  - --accessLog.filters.statusCodes=400-499
+      - --providers.docker=true
+      - --providers.docker.endpoint=unix:///var/run/docker.sock # Use Docker Socket Proxy instead for improved security
+      # - --providers.docker.endpoint=tcp://socket-proxy:2375
+      # Automatically set Host rule for services
+      # - --providers.docker.defaultrule=Host(`{{ index .Labels "com.docker.compose.service" }}.$DOMAINNAME`)
+      - --providers.docker.exposedByDefault=false
+      # - --providers.file.filename=/etc/traefik/config/dyn-conf.yml
+      #- --providers.docker.useBindPortIP=true
+      - --providers.docker.network=traefik
+    #  - --providers.file.directory=/rules # Load dynamic configuration from one or more .toml or .yml files in a directory
+      #- --providers.file.directory=/rules/traefik-rules.git/rules # Load dynamic configuration from one or more .toml or .yml files in a directory
+    #  - --providers.file.watch=true # Only works on top level files in the rules folder
+      #- --metrics.prometheus=true
+      #- --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
+    #  - --serversTransport.rootCAs=/rootCA/${ROOT_CA_CERT}
+    #  - --certificatesResolvers.step.acme.email=${ADMIN_EMAIL}
+    #  - --certificatesresolvers.step.acme.caServer=https://${CA_SERVER_IP_PORT}/acme/${ACME_PROVIDER}/directory
+    #  - --certificatesResolvers.step.acme.httpChallenge.entryPoint=http
+    #  - --certificatesresolvers.step.acme.storage=/acme/acme.json
+      #- --tls.stores.default.defaultCertificate.certFile=/certs/${DOMAINNAME}.crt
+      #- --tls.stores.default.defaultCertificate.keyFile=/certs/${DOMAINNAME}.key
+    environment:
+    #  - LEGO_CA_CERTIFICATES=/rootCA/${ROOT_CA_CERT}
+      - TZ=${TZ}
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro" # Use Docker Socket Proxy instead for improved security
+    #  - traefik-acme:/acme
+    #  - "./certs:/rootCA:ro"
+    #  - ${TRAEFIK_GIT_SYNC_DIR}:/rules
+    #  - $PWD/logs/traefik.log:/traefik.log # for fail2ban - make sure to touch file before starting container
+      #- "./secrets:/secrets/"
+      #- "./certs:/certs/"
+    networks:
+      traefik:
+        ipv4_address: ${IP} # You can specify a static IP
+  #  dns:
+  #    - ${COREDNS_IP}
+  #  dns_search: ${DOMAINNAME}
+    labels:
+      - "traefik.enable=true"
+    #  - "traefik.http.routers.http-catchall.entrypoints=http"
+    #  - "traefik.http.routers.http-catchall.rule=HostRegexp(`{any:.+}`)"
+    #  - "traefik.http.routers.http-catchall.middlewares=https_redirect"
+    #  - "traefik.http.middlewares.https_redirect.redirectscheme.scheme=https"
+    #  - "traefik.http.middlewares.https_redirect.redirectscheme.permanent=true"
+      #traefik dashboard rules
+      - "traefik.http.routers.dashboard.entrypoints=http"
+      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK}.${DOMAINNAME}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
+    #  - "traefik.http.routers.dashboard.middlewares=chain-no-auth@file"
+    #  - "traefik.http.routers.dashboard.service=api@internal"
+    #  - "traefik.http.routers.dashboard.tls=true"
+    #  - "traefik.http.routers.dashboard.tls.certResolver=step"
+
+networks:
+  traefik:
+    external:
+      name: traefik
+
+volumes:
+  step-ca:
+    external: true
+  traefik-acme:
+    external: true
