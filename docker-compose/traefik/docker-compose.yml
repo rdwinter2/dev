@@ -17,7 +17,7 @@ services:
       - --entrypoints.http.forwardedHeaders.insecure
     #  - --entrypoints.step-ca.address=:8443
       - --api=true
-      # - --api.insecure=true
+      - --api.insecure=true
       - --api.dashboard=true
       # - --serversTransport.insecureSkipVerify=true
       - --log=true
@@ -51,8 +51,8 @@ services:
     #  - LEGO_CA_CERTIFICATES=/rootCA/${ROOT_CA_CERT}
       - TZ=${TZ}
     ports:
-      - 80:80
-      - 443:443
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro" # Use Docker Socket Proxy instead for improved security
     #  - traefik-acme:/acme
@@ -69,17 +69,17 @@ services:
   #  dns_search: ${DOMAINNAME}
     labels:
       - "traefik.enable=true"
-    #  - "traefik.http.routers.http-catchall.entrypoints=http"
-    #  - "traefik.http.routers.http-catchall.rule=HostRegexp(`{any:.+}`)"
-    #  - "traefik.http.routers.http-catchall.middlewares=https_redirect"
-    #  - "traefik.http.middlewares.https_redirect.redirectscheme.scheme=https"
-    #  - "traefik.http.middlewares.https_redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.http-catchall.entrypoints=http"
+      - "traefik.http.routers.http-catchall.rule=HostRegexp(`{any:.+}`)"
+      - "traefik.http.routers.http-catchall.middlewares=https_redirect"
+      - "traefik.http.middlewares.https_redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https_redirect.redirectscheme.permanent=true"
       #traefik dashboard rules
-      - "traefik.http.routers.dashboard.entrypoints=http"
+      - "traefik.http.routers.dashboard.entrypoints=https"
       - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK}.${DOMAINNAME}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
     #  - "traefik.http.routers.dashboard.middlewares=chain-no-auth@file"
-    #  - "traefik.http.routers.dashboard.service=api@internal"
-    #  - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.tls=true"
     #  - "traefik.http.routers.dashboard.tls.certResolver=step"
 
 networks:
