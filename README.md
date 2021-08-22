@@ -165,7 +165,17 @@ step certificate create opnsense opnsense.crt opnsense.key --profile=leaf --ca .
 
 Create a VM on Google Compute Engine, or elsewhere. Choose *Debian GNU/Linux 10 (buster)* and *Allow HTTPS traffic*. You uan create a Google Compute Engine VM with upto the $300 free trial up to 24vCPU/128GB RAM as a custom spec.
 
-Add your public ssh key to Compute Engine -> Metadata -> SSH Keys. Then configure VS Code *Remote-SSH*. Set the `.ssh/config` similar to"
+In WSL, generate a RSA SSH key.
+
+```bash
+[[ -f ~/.ssh/id_rsa ]] || ssh-keygen -o -a 100 -t rsa -f ~/.ssh/id_rsa -N "" -C "$(whoami)@$(hostname)"
+```
+
+Add your public ssh key, `~/.ssh/id_rsa.pub`, to Compute Engine -> Metadata -> SSH Keys. 
+
+![Add SSH Keys](media/add_SSH_Keys.png)
+
+Then configure VS Code *Remote-SSH*. Set the `.ssh/config` similar to"
 
 ```
 Host <VM name>
