@@ -11,9 +11,13 @@ done
 EXTERNAL_IP=$(gcloud compute instances describe instance-1 --zone=us-central1-a | grep natIP | awk '{print $2}')
 echo ${EXTERNAL_IP}
 # If it doesn't already have the right IP 
+export WINUSR=rdwin
 export USR=rdwinter2
-CONF=/c/Users/${USR}/.ssh/config && grep $EXTERNAL_IP $CONF || sed -i.bak$(date +%s) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $CONF
-CONF=/home/${USR}/.ssh/config && grep $EXTERNAL_IP $CONF || sed -i.bak$(date --iso-8601=seconds) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $CONF
+export WINCONF=/mnt/c/Users/${WINUSR}/.ssh/config 
+grep $EXTERNAL_IP $WINCONF || sed -i.bak$(date +%s) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $WINCONF
+export CONF=/home/${USR}/.ssh/config
+[[ -f $CONF ]] || $(cp $WINCONF $CONF && sed -i.bak$(date --iso-8601=seconds) -e 's@NUL@/dev/null@g' -e 's@C:\\Users\\rdwin\\.ssh\\@/home/rdwinter2/.ssh/@g' $CONF)
+grep $EXTERNAL_IP $CONF || sed -i.bak$(date --iso-8601=seconds) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $CONF
 sleep 5
 # without string interpolation
 RESULT=1

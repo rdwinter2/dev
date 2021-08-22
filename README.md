@@ -189,6 +189,12 @@ In WSL, generate a RSA SSH key.
 [[ -f ~/.ssh/id_rsa ]] || ssh-keygen -o -a 100 -t rsa -f ~/.ssh/id_rsa -N "" -C "$(whoami)@$(hostname)"
 ```
 
+From Windows Powershell copy the keys to a Windows folder.
+
+```powershell
+cp \\wsl$\Ubuntu\home\<user>\.ssh\id_rsa* C:\Users\<user>\.ssh
+```
+
 Add your public ssh key, `~/.ssh/id_rsa.pub`, to Compute Engine -> Metadata -> SSH Keys. 
 
 ![Add SSH Keys](media/add_SSH_Keys.png)
