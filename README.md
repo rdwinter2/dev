@@ -1,7 +1,7 @@
 [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/rdwinter2/dev)
 
 # dev
-Development system with KinD. Can create a Google Compute Engine VM with the $300 free trial up to 24vCPU/128GB RAM as a custom spec.
+Development system with KinD. Can create a Google Compute Engine VM with the $300 free trial up to 8vCPU/32GB RAM as a custom spec.
 
 ```
 curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
@@ -30,6 +30,24 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
 <!--te-->
 
 ## Instructions
+
+1. Clone this repo.
+2. Open your WSL terminal and create a rsa ssh key.
+3. Add the public rsa ssh key to Google Cloud Platform (GCP).
+4. Install gcloud in WSL and run `gcloud init`.
+5. Go to the GCP GUI and go though the steps to create a VM. Capture the gcloud command and save it at secrets/gcloud.sh.
+6. 
+
+
+## Insatll gcloud in WSL
+
+```bash
+sudo apt-get install apt-transport-https ca-certificates gnupg
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+sudo apt-get update -yqq && sudo apt-get install -yqq google-cloud-sdk
+```
+
 
 ```bash
 #####################
@@ -204,24 +222,25 @@ nifi
 ## Docker images
 
 ```
-bitnami/openldap:2.4.55
-sonatype/nexus3:3.28.1
-gitlab/gitlab-ce:13.5.4-ce.0
-gitlab/gitlab-runner:v13.5.0
-library/traefik:v2.3.2
+apache/nifi:1.14.0
+bitnami/openldap:2.4.59
+bitnami/zookeeper:3.7.0
+coredns/coredns:1.8.4
+gitlab/gitlab-ce:14.1.3-ce.0
+gitlab/gitlab-runner:v14.1.0
+jboss/keycloak:15.0.2
+library/caddy:2.4.3
+library/mongo:5.0.2
+library/postgres:13.4
+library/redis:6.2.5
+library/traefik:v2.5.1
+linuxserver/code-server:version-v3.11.1
+mattermost/mattermost-team-edition:release-5.38
+prom/prometheus:v2.29.1
+smallstep/step-ca:0.16.2
+smallstep/step-cli:0.16.1
+sonatype/nexus3:3.33.1
 thomseddon/traefik-forward-auth:2.2.0
-smallstep/step-ca:0.15.5
-smallstep/step-cli:0.15.3
-library/postgres:13.1
-mattermost/mattermost-team-edition:release-5.29
-jboss/keycloak:11.0.2
-bitnami/zookeeper:3.6.2
-coredns/coredns:1.8.0
-library/caddy:2.2.1
-prom/prometheus:v2.22.1
-library/redis:6.0.9
-library/mongo:4.0.21
-linuxserver/code-server:version-v3.6.2
 
 gcr.io/google-containers/cadvisor:v0.36.0
 ```
