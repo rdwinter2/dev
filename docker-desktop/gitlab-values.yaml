@@ -1,0 +1,7 @@
+USER-SUPPLIED VALUES:
+certmanager-issuer:
+  email: me@example.com
+global:
+  hosts:
+    domain: example.com
+    externalIP: 127.0.0.241

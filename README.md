@@ -228,6 +228,7 @@ nifi
 ## Docker images
 
 ```
+alpine/git:v2.30.2
 apache/nifi:1.14.0
 bitnami/openldap:2.4.59
 bitnami/zookeeper:3.7.0
@@ -445,3 +446,18 @@ services:
       traefik.http.routers.whoami.tls: true
       traefik.http.routers.whoami.tls.certResolver: step
       traefik.http.services.whoami.loadbalancer.server.port: 80
+
+
+## Prometheus Node Exporter
+
+Export metrics from Linux node, VM or WSL2.
+
+```bash
+VERSION=$(curl -fsSL "https://api.github.com/repos/prometheus/node_exporter/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-)
+curl -fsSL -O https://github.com/prometheus/node_exporter/releases/download/v${VERSION}/node_exporter-${VERSION}.linux-amd64.tar.gz
+tar xvf ./node_exporter-${VERSION}.linux-amd64.tar.gz
+# sudo install --mode=755 --owner=root ./gh_${VERSION}_linux_amd64/bin/gh /usr/local/bin/
+# sudo cp -r ./gh_${VERSION}_linux_amd64/share/man/man1/* /usr/share/man/man1/
+# rm -rf ./gh_${VERSION}_linux_amd64*
+
+```

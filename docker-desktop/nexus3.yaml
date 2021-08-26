@@ -1,0 +1,696 @@
+---
+# Source: nexus3/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nexus-nexus3
+  labels:
+    helm.sh/chart: nexus3-4.6.1
+    app.kubernetes.io/name: nexus3
+    app.kubernetes.io/instance: nexus
+    app.kubernetes.io/version: "3.33.1"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: nexus3/templates/configmap-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexus-nexus3-conf
+  labels:
+    helm.sh/chart: nexus3-4.6.1
+    app.kubernetes.io/name: nexus3
+    app.kubernetes.io/instance: nexus
+    app.kubernetes.io/version: "3.33.1"
+    app.kubernetes.io/managed-by: Helm
+data:
+  cleanup.groovy: |
+    import org.sonatype.nexus.cleanup.storage.CleanupPolicy;
+    import org.sonatype.nexus.cleanup.storage.CleanupPolicyStorage;
+    import groovy.json.JsonSlurper
+    
+    def cleanupPolicyStorage = container.lookup(CleanupPolicyStorage.class.getName())
+    
+    def params = new JsonSlurper().parseText(args)
+    
+    if (cleanupPolicyStorage.exists(params.name)) {
+      def existingPolicy = cleanupPolicyStorage.get(params.name);
+      existingPolicy.setNotes(params.notes);
+      existingPolicy.setFormat(params.format);
+      existingPolicy.setMode(params.mode);
+      existingPolicy.setCriteria(params.criteria);
+      cleanupPolicyStorage.update(existingPolicy);
+    } else {
+      def newPolicy = cleanupPolicyStorage.newCleanupPolicy()
+      newPolicy.setName(params.name)
+      newPolicy.setNotes(params.notes);
+      newPolicy.setFormat(params.format);
+      newPolicy.setMode(params.mode);
+      newPolicy.setCriteria(params.criteria);
+      cleanupPolicyStorage.add(newPolicy);
+    }
+    
+    return true
+    
+  configure.sh: |
+    #!/usr/bin/env bash
+    set -eu
+    
+    nexus_host="http://localhost:8081"
+    root_user="admin"
+    base_dir="/opt/sonatype/nexus"
+    out_file="/tmp/out.json"
+    
+    if [ -f "${base_dir}/secret/root.password" ]
+    then
+      root_password="$(cat "${base_dir}/secret/root.password")"
+    fi
+    
+    if [ -z "${root_password:-}" ]
+    then
+      echo "No root password was provided."
+      exit 0
+    fi
+    
+    while /bin/true
+    do
+      if [ "$(curl -s -o /dev/null -w "%{http_code}" "${nexus_host}/service/rest/v1/status")" -ne "200" ]
+      then
+        echo "Waiting for Nexus..."
+        sleep 15
+        continue
+      fi
+    
+      if [ -f "/nexus-data/admin.password" ]
+      then
+        default_password="$(cat /nexus-data/admin.password)"
+      fi
+    
+      if [ -n "${default_password:-}" ] && [ -n "${root_password}" ]
+      then
+        echo "Updating root password..."
+    
+        status_code=$(curl -s -o /dev/null -w "%{http_code}" -X PUT -H 'Content-Type: text/plain' -u "${root_user}:${default_password}" -d "${root_password}" "${nexus_host}/service/rest/beta/security/users/${root_user}/change-password")
+        if [ "${status_code}" -ne 204 ]
+        then
+          echo "Could not update the root password." >&2
+          exit 1
+        fi
+    
+        echo "Root password updated."
+        rm -f /nexus-data/admin.password
+      fi
+    
+      json_file="${base_dir}/conf/anonymous.json"
+      if [ -f "${json_file}" ]
+      then
+        echo "Updating anonymous access..."
+    
+        status_code="$(curl -s -o /dev/null -w "%{http_code}" -X PUT -H 'Content-Type: application/json' -u "${root_user}:${root_password}" -d "@${json_file}" "${nexus_host}/service/rest/beta/security/anonymous")"
+        if [ "${status_code}" -ne 200 ]
+        then
+          echo "Could not configure anonymous access." >&2
+          exit 1
+        fi
+    
+        echo "Anonymous access configured."
+      fi
+    
+      json_file="${base_dir}/conf/realms.json"
+      if [ -f "${json_file}" ]
+      then
+        echo "Updating realms..."
+    
+        status_code="$(curl -s -o /dev/null -w "%{http_code}" -X PUT -H 'Content-Type: application/json' -u "${root_user}:${root_password}" -d "@${json_file}" "${nexus_host}/service/rest/beta/security/realms/active")"
+        if [ "${status_code}" -ne 204 ]
+        then
+          echo "Could not configure realms." >&2
+          exit 1
+        fi
+    
+        echo "Realms configured."
+      fi
+    
+      json_file="${base_dir}/conf/ldap.json"
+      if [ -f "${json_file}" ]
+      then
+        temp_file="/tmp/ldap.json"
+        cp -f "${json_file}" "${temp_file}"
+        json_file="${temp_file}"
+    
+        if [ -f "${base_dir}/secret/ldap.password" ]
+        then
+          ldap_password=$(cat "${base_dir}/secret/ldap.password")
+          sed -i "s/PASSWORD/${ldap_password}/g" "${json_file}"
+        fi
+    
+        name="$(grep -Pio '(?<="name":)\s*\"[^"]+\"' "${json_file}" | xargs)"
+    
+        status_code=$(curl -s -o "${out_file}" -w "%{http_code}" -X GET -H 'Content-Type: application/json' -u "${root_user}:${root_password}" "${nexus_host}/service/rest/v1/security/ldap/${name// /%20}")
+        if [ "${status_code}" -eq 200 ]
+        then
+          echo "Updating LDAP configuration for '${name}'..."
+    
+          id="$(grep -Pio '(?<="id"\s:)\s*\"[^"]+\"' "${out_file}" | xargs)"
+          sed -i "s/{\"/{\"id\":\"${id}\",\"/g" "${json_file}"
+    
+          status_code="$(curl -s -o /dev/null -w "%{http_code}" -X PUT -H 'Content-Type: application/json' -u "${root_user}:${root_password}" -d "@${json_file}" "${nexus_host}/service/rest/v1/security/ldap/${name// /%20}")"
+          if [ "${status_code}" -ne 204 ]
+          then
+            echo "Could not configure LDAP." >&2
+            exit 1
+          fi
+        else
+          echo "Adding LDAP configuration for '${name}'..."
+    
+          status_code="$(curl -s -o /dev/null -w "%{http_code}" -X POST -H 'Content-Type: application/json' -u "${root_user}:${root_password}" -d "@${json_file}" "${nexus_host}/service/rest/v1/security/ldap")"
+          if [ "${status_code}" -ne 201 ]
+          then
+            echo "Could not configure LDAP." >&2
+            exit 1
+          fi
+        fi
+    
+        rm -f "${json_file}"
+        echo "LDAP configured."
+      fi
+    
+      for json_file in "${base_dir}"/conf/*-blobstore.json
+      do
+        if [ -f "${json_file}" ]
+        then
+          type="$(grep -Pio '(?<="type":)\s*\"[^"]+\"' "${json_file}" | xargs)"
+          if [ "${type}" = "s3" ]
+          then
+            name="$(grep -Pio '(?<="name":)(\s*\"[^"]+\")(?=,"type":\"s3\")' "${json_file}" | xargs)"
+          else
+            name="$(grep -Pio '(?<="name":)\s*\"[^"]+\"' "${json_file}" | xargs)"
+          fi
+          echo "Updating blob store '${name}'..."
+    
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" -X GET -H 'Content-Type: application/json' -u "${root_user}:${root_password}" "${nexus_host}/service/rest/v1/blobstores/${type}/${name}")
+          if [ "${status_code}" -eq 200 ]
+          then
+            status_code="$(curl -s -o /dev/null -w "%{http_code}" -X PUT -H 'Content-Type: application/json' -u "${root_user}:${root_password}" -d "@${json_file}" "${nexus_host}/service/rest/v1/blobstores/${type}/${name}")"
+            if [ "${status_code}" -ne 204 ]
+            then
+              echo "Could not configure blob store." >&2
+              exit 1
+            fi
+          else
+            status_code="$(curl -s -o /dev/null -w "%{http_code}" -X POST -H 'Content-Type: application/json' -u "${root_user}:${root_password}" -d "@${json_file}" "${nexus_host}/service/rest/v1/blobstores/${type}")"
+            if [ "${status_code}" -ne 204 ] && [ "${status_code}" -ne 201 ]
+            then
+              echo "Could not configure blob store." >&2
+              exit 1
+            fi
+          fi
+    
+          echo "Blob store configured."
+        fi
+      done
+    
+      for script_file in "${base_dir}"/conf/*.groovy
+      do
+        echo "Updating script ${script_file}."
+    
+        name="$(basename "${script_file}" .groovy)"
+        content="$(sed 's/\"/\\\"/g' "${script_file}" | sed ':a;N;$!ba;s/\n/\\n/g')"
+        data="{ \"name\": \"${name}\", \"type\": \"groovy\", \"content\": \"${content}\" }"
+    
+        status_code=$(curl -s -o /dev/null -w "%{http_code}" -X GET -u "${root_user}:${root_password}" "${nexus_host}/service/rest/v1/script/${name}")
+        if [ "${status_code}" -eq 200 ]
+        then
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" -X PUT -H 'Content-Type: application/json' -u "${root_user}:${root_password}" -d "${data}" "${nexus_host}/service/rest/v1/script/${name}")
+        else
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H 'Content-Type: application/json' -u "${root_user}:${root_password}" -d "${data}" "${nexus_host}/service/rest/v1/script")
+        fi
+    
+        if [ "${status_code}" -ne 204 ]
+        then
+          echo "Could not update script ${name}." >&2
+          exit 1
+        fi
+    
+        echo "Script ${script_file} updated."
+      done
+    
+      for json_file in "${base_dir}"/conf/*-cleanup.json
+      do
+        if [ -f "${json_file}" ]
+        then
+          echo "Configuring cleanup policy..."
+    
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H 'Content-Type: application/json' -u "${root_user}:${root_password}" -d "@${json_file}" "${nexus_host}/service/rest/v1/script/cleanup/run")
+          if [ "${status_code}" -ne 200 ]
+          then
+            echo "Could not set cleanup policy." >&2
+            exit 1
+          fi
+    
+          echo "Cleanup policy configured."
+        fi
+      done
+    
+      for json_file in "${base_dir}"/conf/*-repo.json
+      do
+        if [ -f "${json_file}" ]
+        then
+          echo "Configuring repo..."
+    
+          temp_file="/tmp/repo.json"
+          cp -f "${json_file}" "${temp_file}"
+          json_file="${temp_file}"
+    
+          repo_name="$(grep -Pio '(?<="name":)\s*\"[^"]+\"' "${json_file}" | xargs)"
+          repo_password_file="${base_dir}/secret/repo-credentials/${repo_name}"
+          if [ -f "${repo_password_file}" ]
+          then
+            repo_password="$(cat "${repo_password_file}")"
+            sed -i "s/PASSWORD/${repo_password}/g" "${json_file}"
+          fi
+    
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H 'Content-Type: application/json' -u "${root_user}:${root_password}" -d "@${json_file}" "${nexus_host}/service/rest/v1/script/repo/run")
+          if [ "${status_code}" -ne 200 ]
+          then
+            echo "Could not set repo." >&2
+            exit 1
+          fi
+    
+          rm -f "${json_file}"
+          echo "Repo configured."
+        fi
+      done
+    
+      for json_file in "${base_dir}"/conf/*-role.json
+      do
+        if [ -f "${json_file}" ]
+        then
+          id="$(grep -Pio '(?<="id":)\s*\"[^"]+\"' "${json_file}" | xargs)"
+          source="$(grep -Pio '(?<="source":)\s*\"[^"]+\"' "${json_file}" | xargs)"
+          echo "Updating role '${id}'..."
+    
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" -X GET -H 'Content-Type: application/json' -u "${root_user}:${root_password}" "${nexus_host}/service/rest/beta/security/roles/${id}?source=${source}")
+          if [ "${status_code}" -eq 200 ]
+          then
+            status_code="$(curl -s -o /dev/null -w "%{http_code}" -X PUT -H 'Content-Type: application/json' -u "${root_user}:${root_password}" -d "@${json_file}" "${nexus_host}/service/rest/beta/security/roles/${id}")"
+            if [ "${status_code}" -ne 204 ]
+            then
+              echo "Could not configure role." >&2
+              exit 1
+            fi
+          else
+            status_code="$(curl -s -o /dev/null -w "%{http_code}" -X POST -H 'Content-Type: application/json' -u "${root_user}:${root_password}" -d "@${json_file}" "${nexus_host}/service/rest/beta/security/roles")"
+            if [ "${status_code}" -ne 200 ]
+            then
+              echo "Could not configure role." >&2
+              exit 1
+            fi
+          fi
+    
+          echo "Role configured."
+        fi
+      done
+    
+      for json_file in "${base_dir}"/conf/*-task.json
+      do
+        if [ -f "${json_file}" ]
+        then
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H 'Content-Type: application/json' -u "${root_user}:${root_password}" -d "@${json_file}" "${nexus_host}/service/rest/v1/script/task/run")
+          if [ "${status_code}" -ne 200 ]
+          then
+            echo "Could not set task." >&2
+            exit 1
+          fi
+    
+          echo "Task configured."
+        fi
+      done
+    
+      json_file="${base_dir}/conf/anonymous-user.json"
+      if [ -f "${json_file}" ]
+      then
+        echo "Configuring anonymous user for metrics..."
+    
+        status_code="$(curl -s -o /dev/null -w "%{http_code}" -X PUT -H 'Content-Type: application/json' -u "${root_user}:${root_password}" -d "@${json_file}" "${nexus_host}/service/rest/beta/security/users/anonymous")"
+        if [ "${status_code}" -ne 204 ]
+        then
+          echo "Could not configure anonymous user for metrics." >&2
+          exit 1
+        fi
+    
+        echo "Anonymous user for metrics configured."
+      fi
+    
+      echo "Configuration run successfully!"
+      exit 0
+    done
+    
+  repo.groovy: |
+    import groovy.json.JsonSlurper
+    import groovy.json.JsonOutput
+    import org.sonatype.nexus.repository.config.Configuration
+    
+    def repositoryManager = repository.repositoryManager
+    
+    def params = new JsonSlurper().parseText(args)
+    if (params.attributes?.cleanup?.policyName) {
+      params.attributes.cleanup.policyName = params.attributes.cleanup.policyName.toSet()
+    }
+    
+    def existingRepository = repositoryManager.get(params.name)
+    Configuration configuration
+    if (existingRepository == null) {
+      configuration = repositoryManager.newConfiguration()
+      configuration.repositoryName = params.name
+      configuration.recipeName = params.type
+      configuration.online = params.online
+      configuration.attributes = params.attributes
+    } else {
+      configuration = existingRepository.getConfiguration()
+      if (params.containsKey("type")) {
+        if (configuration.getRecipeName() != params.type) {
+          throw new Exception("Tried to change recipe for repo ${params.name} to ${params.type}")
+        }
+      }
+    
+      configuration.setOnline(params.online)
+      if (params.containsKey("attributes")) {
+        configuration.setAttributes(params.attributes)
+      }
+    }
+    
+    if (existingRepository == null) {
+      repositoryManager.create(configuration)
+    } else {
+      repositoryManager.update(configuration)
+    }
+    
+    return true
+    
+  task.groovy: |
+    import org.sonatype.nexus.scheduling.TaskConfiguration
+    import org.sonatype.nexus.scheduling.TaskInfo
+    import org.sonatype.nexus.scheduling.TaskScheduler
+    import org.sonatype.nexus.scheduling.schedule.Schedule
+    import groovy.json.JsonSlurper
+    
+    def taskScheduler = container.lookup(TaskScheduler.class.getName())
+    
+    def params = new JsonSlurper().parseText(args)
+    
+    def existingTask = taskScheduler.listsTasks().find { TaskInfo taskInfo ->
+      taskInfo.getName() == params.name
+    }
+    
+    if (existingTask && !existingTask.remove()) {
+      throw new RuntimeException("Could not remove currently running task '${params.name}'")
+    }
+    
+    def taskConfiguration = taskScheduler.createTaskConfigurationInstance(params.typeId)
+    taskConfiguration.setName(params.name)
+    params.attributes.each { key, value -> taskConfiguration.setString(key, value) }
+    params.boolAttributes.each { key, value -> taskConfiguration.setBoolean(key, Boolean.valueOf(value)) }
+    
+    def schedule = taskScheduler.scheduleFactory.cron(new Date(), params.crontab)
+    
+    taskScheduler.scheduleTask(taskConfiguration, schedule)
+    
+    return true
+    
+  anonymous.json: |
+    {"enabled":false}
+---
+# Source: nexus3/templates/configmap-logback.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexus-nexus3-logback
+  labels:
+    helm.sh/chart: nexus3-4.6.1
+    app.kubernetes.io/name: nexus3
+    app.kubernetes.io/instance: nexus
+    app.kubernetes.io/version: "3.33.1"
+    app.kubernetes.io/managed-by: Helm
+data:
+  logback-access.xml: |
+    <?xml version="1.0"?>
+    <configuration>
+      <appender name="request.logfile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <File>${karaf.data}/log/request.log</File>
+        <Append>true</Append>
+        <encoder class="org.sonatype.nexus.pax.logging.AccessPatternLayoutEncoder">
+          <pattern>%clientHost %l %user [%date] "%requestURL" %statusCode %header{Content-Length} %bytesSent %elapsedTime "%header{User-Agent}" [%thread]</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+          <fileNamePattern>${karaf.data}/log/request-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+          <maxHistory>30</maxHistory>
+        </rollingPolicy>
+      </appender>
+
+      <appender-ref ref="request.logfile"/>
+    </configuration>
+  logback.xml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <configuration>
+      <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+        <resetJUL>true</resetJUL>
+      </contextListener>
+
+      <jmxConfigurator/>
+
+      <appender name="osgi" class="org.ops4j.pax.logging.logback.internal.bridges.PaxAppenderDelegate">
+        <filter class="org.sonatype.nexus.pax.logging.NexusLogFilter" />
+      </appender>
+
+      <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="org.sonatype.nexus.pax.logging.NexusLogFilter" />
+        <encoder>
+          <pattern>%d{"yyyy-MM-dd HH:mm:ss,SSSZ"} %-5p [%thread] %mdc{userId:-*SYSTEM} %c - %m%n</pattern>
+        </encoder>
+      </appender>
+
+      <appender name="logfile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <File>${karaf.data}/log/nexus.log</File>
+        <Append>true</Append>
+        <encoder class="org.sonatype.nexus.pax.logging.NexusLayoutEncoder">
+          <pattern>%d{"yyyy-MM-dd HH:mm:ss,SSSZ"} %-5p [%thread] %node %mdc{userId:-*SYSTEM} %c - %m%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+          <fileNamePattern>${karaf.data}/log/nexus-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+          <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <filter class="org.sonatype.nexus.pax.logging.NexusLogFilter" />
+      </appender>
+
+      <appender name="clusterlogfile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <File>${karaf.data}/log/nexus_cluster.log</File>
+        <Append>true</Append>
+        <encoder class="org.sonatype.nexus.pax.logging.NexusLayoutEncoder">
+          <pattern>%d{"yyyy-MM-dd HH:mm:ss,SSSZ"} %-5p [%thread] %node %mdc{userId:-*SYSTEM} %c - %m%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+          <fileNamePattern>${karaf.data}/log/nexus_cluster-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+          <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <filter class="org.sonatype.nexus.pax.logging.ClusterLogFilter" />
+      </appender>
+
+      <appender name="tasklogfile" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <filter class="org.sonatype.nexus.pax.logging.TaskLogsFilter" />
+        <discriminator>
+          <key>taskIdAndDate</key>
+          <defaultValue>unknown</defaultValue>
+        </discriminator>
+        <sift>
+          <appender name="taskAppender" class="ch.qos.logback.core.FileAppender">
+            <file>${karaf.data}/log/tasks/${taskIdAndDate}.log</file>
+            <encoder class="org.sonatype.nexus.pax.logging.NexusLayoutEncoder">
+              <pattern>%d{"yyyy-MM-dd HH:mm:ss,SSSZ"} %-5p [%thread] %node %mdc{userId:-*SYSTEM} %c - %m%n</pattern>
+            </encoder>
+          </appender>
+        </sift>
+      </appender>
+
+      <appender name="auditlogfile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <File>${karaf.data}/log/audit/audit.log</File>
+        <Append>true</Append>
+        <encoder>
+          <pattern>%msg%n</pattern>
+        </encoder>
+        <filter class="org.sonatype.nexus.pax.logging.AuditLogFilter"/>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+          <fileNamePattern>${karaf.data}/log/audit/audit-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+          <maxHistory>30</maxHistory>
+        </rollingPolicy>
+      </appender>
+
+      <logger name="auditlog" additivity="false">
+        <appender-ref ref="auditlogfile"/>
+      </logger>
+
+      <appender name="metrics" class="org.sonatype.nexus.pax.logging.InstrumentedAppender"/>
+
+      <logger name="org.eclipse.jetty.webapp" level="INFO"/>
+      <logger name="org.eclipse.jetty.webapp.StandardDescriptorProcessor" level="WARN"/>
+
+      <logger name="org.apache.aries" level="WARN"/>
+      <logger name="org.apache.felix" level="WARN"/>
+      <logger name="org.apache.karaf" level="WARN"/>
+
+      <include file="${karaf.data}/etc/logback/logback-overrides.xml" optional="true"/>
+
+      <root level="${root.level:-INFO}">
+        <appender-ref ref="osgi"/>
+        <appender-ref ref="console"/>
+        <appender-ref ref="logfile"/>
+        <appender-ref ref="clusterlogfile"/>
+        <appender-ref ref="tasklogfile"/>
+        <appender-ref ref="metrics"/>
+      </root>
+    </configuration>
+---
+# Source: nexus3/templates/configmap-properties.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexus-nexus3-properties
+  labels:
+    helm.sh/chart: nexus3-4.6.1
+    app.kubernetes.io/name: nexus3
+    app.kubernetes.io/instance: nexus
+    app.kubernetes.io/version: "3.33.1"
+    app.kubernetes.io/managed-by: Helm
+data:
+  nexus.properties: |
+    nexus.scripts.allowCreation=true
+---
+# Source: nexus3/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexus-nexus3
+  labels:
+    helm.sh/chart: nexus3-4.6.1
+    app.kubernetes.io/name: nexus3
+    app.kubernetes.io/instance: nexus
+    app.kubernetes.io/version: "3.33.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8081
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: nexus3
+    app.kubernetes.io/instance: nexus
+---
+# Source: nexus3/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexus-nexus3
+  labels:
+    helm.sh/chart: nexus3-4.6.1
+    app.kubernetes.io/name: nexus3
+    app.kubernetes.io/instance: nexus
+    app.kubernetes.io/version: "3.33.1"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nexus3
+      app.kubernetes.io/instance: nexus
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nexus3
+        app.kubernetes.io/instance: nexus
+      annotations:
+        checksum/logback: 56384cd2a1f00ed60f41ed50dceea3c51902695b80cf0ff057be402c9f80cfd0
+        checksum/properties: dc56f67807f2301d5b66bf3f44cf83b10978784cbe222ccd49a9fc821a63b525
+        checksum/config: 1d457b3ddf014d97cbe01f2b65523c5b74902d948d7a32b0c8c70b80f8d4f80a
+    spec:
+      serviceAccountName: nexus-nexus3
+      securityContext:
+        fsGroup: 200
+      initContainers:
+        - name: volume-mount
+          image: alpine:3
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh"]
+          args: ["-c", "mkdir -p /nexus-data/etc; chown -R 200:200 /nexus-data;"]
+          volumeMounts:
+            - mountPath: /nexus-data
+              name: nexus-nexus3-data
+      containers:
+        - name: nexus3
+          securityContext:
+            runAsGroup: 200
+            runAsUser: 200
+          image: sonatype/nexus3:3.33.1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: INSTALL4J_ADD_VM_PARAMS
+              value: "-Xms1024m -Xmx1024m -XX:MaxDirectMemorySize=2048m -Djava.util.prefs.userRoot=/nexus-data/javaprefs "
+          command: ["/bin/sh"]
+          args: ["-c", "mkdir -p /nexus-data/etc; ${SONATYPE_DIR}/start-nexus-repository-manager.sh"]
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - "sh"
+                  - "-c"
+                  - "${SONATYPE_DIR}/nexus/conf/configure.sh"
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 10
+            httpGet:
+              path: /service/rest/v1/status
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 1
+          readinessProbe:
+            failureThreshold: 10
+            httpGet:
+              path: /service/rest/v1/status
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 1
+          volumeMounts:
+            - mountPath: /nexus-data
+              name: nexus-nexus3-data
+            - mountPath: /opt/sonatype/nexus/etc/logback
+              name: nexus-nexus3-logback
+              readOnly: true
+            - mountPath: /nexus-data/etc/nexus.properties
+              name: nexus-nexus3-properties
+              subPath: nexus.properties
+              readOnly: true
+            - mountPath: /opt/sonatype/nexus/conf
+              name: nexus-nexus3-conf
+              readOnly: true
+      volumes:
+        - name: nexus-nexus3-data
+          emptyDir: {}
+        - name: nexus-nexus3-logback
+          configMap:
+            name: nexus-nexus3-logback
+            defaultMode: 0755
+        - name: nexus-nexus3-properties
+          configMap:
+            name: nexus-nexus3-properties
+            defaultMode: 0755
+        - name: nexus-nexus3-conf
+          configMap:
+            name: nexus-nexus3-conf
+            defaultMode: 0755
