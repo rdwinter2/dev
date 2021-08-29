@@ -17,11 +17,11 @@ EOT
 cat <<-EOT > certs/intermediate_ca.crt
 $(cat ~/.certs/intermediate_ca.crt)
 EOT
-cat <<-EOT > secrets/example.web.key
-$(cat ~/.certs/example.web.key)
+cat <<-EOT > secrets/example.com_wildcard.key
+$(cat ~/.certs/example.com_wildcard.key)
 EOT
-cat <<-EOT > certs/example.web.crt
-$(cat ~/.certs/example.web.crt)
+cat <<-EOT > certs/example.wcom_wildcardeb.crt
+$(cat ~/.certs/example.com_wildcard.crt)
 EOT
 sudo cp certs/root_ca.crt /usr/local/share/ca-certificates/root_ca.crt
 sudo cp certs/intermediate_ca.crt /usr/local/share/ca-certificates/intermediate_ca.crt

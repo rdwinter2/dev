@@ -31,6 +31,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
 
 ## Instructions
 
+0. Prerequisites to be done in WSL2
 1. Clone this repo.
 2. Open your WSL terminal and create a rsa ssh key.
 3. Add the public rsa ssh key to Google Cloud Platform (GCP).
@@ -39,7 +40,41 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
 6. 
 
 
-## Insatll gcloud in WSL
+## Prerequisites to be done in WSL2
+
+### Install a Debian or Ubuntu distro as a WSL2 environment
+
+Setup zsh
+
+```bash
+sudo apt-get install -yqq zsh
+sudo sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+```
+
+Configure your default setting for your VSCode terminal to be zsh.
+
+```bash
+sudo apt-get install -yqq zsh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+sudo apt-get install -yqq git 
+git config --global user.email "rdwinter2@gmail.com"
+git config --global user.name "Robert D. Winter, 2nd"
+git config --global core.autocrlf input
+git config --global push.default simple
+git config --global credential.helper 'cache --timeout 99999999'
+git config --global rebase.autosquash true
+git config --global init.defaultBranch main
+git config --global fetch.prune true
+git clone git@github.com:rdwinter2/dev.git
+cd dev
+scripts/wsl2.sh
+```
+
+Restart your terminal.
+
+
+
+## Install gcloud in WSL
 
 ```bash
 sudo apt-get install apt-transport-https ca-certificates gnupg
@@ -47,6 +82,12 @@ echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.clou
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
 sudo apt-get update -yqq && sudo apt-get install -yqq google-cloud-sdk
 ```
+
+## Create Github and Gitlab tokens
+
+ansible-vault create ~/.ansible/.logins/github_dev_token
+
+ansible-vault create ~/.ansible/.logins/gitlab_flux_token
 
 
 ```bash
@@ -57,7 +98,7 @@ echo "Logging to logs/${logfile}"
 #####################
 
 #########################  After configuring OpnSense
-/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -File "flushdns.ps1"
+/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -File "flushdns.ps1"
 #########################
 
 ##############################
@@ -88,7 +129,8 @@ scripts/generateCerts.sh
 You can view your certificates with 
 
 ```
-docker run -it --rm --user=$(id -u):$(id -g) -v $HOME/.certs:/home/step smallstep/step-cli:0.16.1 bash -c " \
+step_tag=0.17.1
+docker run -it --rm --user=$(id -u):$(id -g) -v $HOME/.certs:/home/step smallstep/step-cli:${step_tag} bash -c " \
 step certificate inspect root_ca.crt"
 ```
 
@@ -109,6 +151,14 @@ step certificate p12 client_crt.p12 \
 ```
 
 Load `root_ca.crt`, `intermediate_ca.crt`, and `client.p12` into the browser's trust store.
+
+\\wsl$\Ubuntu\home\rdwinter2\.certs\root_ca.crt
+
+\\wsl$\Ubuntu\home\rdwinter2\.certs\intermediate_ca.crt
+
+\\wsl$\Ubuntu\home\rdwinter2\.certs\client.p12
+
+\\wsl$\Ubuntu\home\rdwinter2\.certs\client_passwd
 
 After creating a VM and running the setup.sh script, load the `root_ca.crt` and `intermediate_ca.crt` in the VM's trust store.
 

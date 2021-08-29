@@ -14,8 +14,8 @@ echo ${EXTERNAL_IP}
 export WINUSR=rdwin
 export USR=rdwinter2
 export WINCONF=/mnt/c/Users/${WINUSR}/.ssh/config 
-grep $EXTERNAL_IP $WINCONF || sed -i.bak$(date +%s) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $WINCONF
 export CONF=/home/${USR}/.ssh/config
+grep $EXTERNAL_IP $WINCONF || sed -i.bak$(date +%s) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $WINCONF
 [[ -f $CONF ]] || $(cp $WINCONF $CONF && sed -i.bak$(date --iso-8601=seconds) -e 's@NUL@/dev/null@g' -e 's@C:\\Users\\rdwin\\.ssh\\@/home/rdwinter2/.ssh/@g' $CONF)
 grep $EXTERNAL_IP $CONF || sed -i.bak$(date --iso-8601=seconds) "0,/\s*HostName .*/s//    HostName ${EXTERNAL_IP}/" $CONF
 sleep 5
@@ -52,10 +52,10 @@ $(ansible-vault view ~/.ansible/.logins/gitlab_flux_token)
 ENDGH
 chmod 600 ~/.logins/gl
 ENDSSH
-scp ~/.secrets/* instance-1:~/.secrets
+# scp ~/.secrets/* instance-1:~/.secrets
 scp ~/.certs/*.crt instance-1:~/.certs
 scp ~/.certs/intermediate* instance-1:~/.certs
-scp secrets/promtail/* instance-1:~/promtail
+# scp secrets/promtail/* instance-1:~/promtail
 scp ~/.gitconfig instance-1:~/.gitconfig
 ssh instance-1 'bash -s' <<'ENDSSH'
 curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
