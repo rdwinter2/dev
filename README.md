@@ -98,7 +98,7 @@ echo "Logging to logs/${logfile}"
 #####################
 
 #########################  After configuring OpnSense
-/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -File "flushdns.ps1"
+/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -File "scripts/flushdns.ps1"
 #########################
 
 ##############################

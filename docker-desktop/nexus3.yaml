@@ -1,14 +1,51 @@
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nexus 
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: nexus-data
+  labels:
+    type: local
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local
+  hostPath:
+    path: "/data/nexus-data"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nexus-pvc
+  namespace: nexus
+  labels:
+    app: nexus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local
+  resources:
+    requests:
+      storage: 10Gi
+
+---
 # Source: nexus3/templates/serviceaccount.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: nexus-nexus3
+  namespace: nexus
   labels:
     helm.sh/chart: nexus3-4.6.1
     app.kubernetes.io/name: nexus3
     app.kubernetes.io/instance: nexus
-    app.kubernetes.io/version: "3.33.1"
+    app.kubernetes.io/version: "3.34.0"
     app.kubernetes.io/managed-by: Helm
 ---
 # Source: nexus3/templates/configmap-config.yaml
@@ -16,11 +53,12 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nexus-nexus3-conf
+  namespace: nexus
   labels:
     helm.sh/chart: nexus3-4.6.1
     app.kubernetes.io/name: nexus3
     app.kubernetes.io/instance: nexus
-    app.kubernetes.io/version: "3.33.1"
+    app.kubernetes.io/version: "3.34.0"
     app.kubernetes.io/managed-by: Helm
 data:
   cleanup.groovy: |
@@ -425,11 +463,12 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nexus-nexus3-logback
+  namespace: nexus
   labels:
     helm.sh/chart: nexus3-4.6.1
     app.kubernetes.io/name: nexus3
     app.kubernetes.io/instance: nexus
-    app.kubernetes.io/version: "3.33.1"
+    app.kubernetes.io/version: "3.34.0"
     app.kubernetes.io/managed-by: Helm
 data:
   logback-access.xml: |
@@ -554,11 +593,12 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nexus-nexus3-properties
+  namespace: nexus
   labels:
     helm.sh/chart: nexus3-4.6.1
     app.kubernetes.io/name: nexus3
     app.kubernetes.io/instance: nexus
-    app.kubernetes.io/version: "3.33.1"
+    app.kubernetes.io/version: "3.34.0"
     app.kubernetes.io/managed-by: Helm
 data:
   nexus.properties: |
@@ -569,11 +609,12 @@ apiVersion: v1
 kind: Service
 metadata:
   name: nexus-nexus3
+  namespace: nexus
   labels:
     helm.sh/chart: nexus3-4.6.1
     app.kubernetes.io/name: nexus3
     app.kubernetes.io/instance: nexus
-    app.kubernetes.io/version: "3.33.1"
+    app.kubernetes.io/version: "3.34.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   type: ClusterIP
@@ -591,11 +632,12 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nexus-nexus3
+  namespace: nexus
   labels:
     helm.sh/chart: nexus3-4.6.1
     app.kubernetes.io/name: nexus3
     app.kubernetes.io/instance: nexus
-    app.kubernetes.io/version: "3.33.1"
+    app.kubernetes.io/version: "3.34.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   replicas: 1
@@ -632,7 +674,7 @@ spec:
           securityContext:
             runAsGroup: 200
             runAsUser: 200
-          image: sonatype/nexus3:3.33.1
+          image: sonatype/nexus3:3.34.0
           imagePullPolicy: IfNotPresent
           env:
             - name: INSTALL4J_ADD_VM_PARAMS
@@ -681,7 +723,9 @@ spec:
               readOnly: true
       volumes:
         - name: nexus-nexus3-data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: nexus-pvc
+#          emptyDir: {}
         - name: nexus-nexus3-logback
           configMap:
             name: nexus-nexus3-logback
@@ -694,3 +738,21 @@ spec:
           configMap:
             name: nexus-nexus3-conf
             defaultMode: 0755
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: nexus-nexus3
+  namespace: nexus
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`nexus.localhost`)
+      kind: Rule
+#      middlewares:
+#        - name: headers-default@file
+      services:
+        - name: nexus-nexus3
+          namespace: nexus
+          port: 8081

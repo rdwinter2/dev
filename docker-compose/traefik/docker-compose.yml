@@ -76,19 +76,20 @@ services:
       - "traefik.http.middlewares.https_redirect.redirectscheme.permanent=true"
       #traefik dashboard rules
       - "traefik.http.routers.dashboard.entrypoints=https"
-      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK}.${DOMAINNAME}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
+      - "traefik.http.routers.dashboard.rule=(Host(`${TRAEFIK}.${DOMAINNAME}`) || Host(`localhost`)) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
     #  - "traefik.http.routers.dashboard.middlewares=chain-no-auth@file"
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.tls=true"
     #  - "traefik.http.routers.dashboard.tls.certResolver=step"
 
+# docker network create --gateway 192.168.90.1 --subnet 192.168.90.0/24 traefik
 networks:
   traefik:
     external:
       name: traefik
 
-volumes:
-  step-ca:
-    external: true
-  traefik-acme:
-    external: true
+#volumes:
+#  step-ca:
+#    external: true
+#  traefik-acme:
+#    external: true

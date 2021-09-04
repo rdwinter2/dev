@@ -87,10 +87,12 @@ docker exec -it  kind-worker crictl images
 docker exec -it  kind-worker2 crictl images
 docker exec -it  kind-worker3 crictl images
 
+
 cat <<-EOT | kind create cluster --config=-
 apiVersion: kind.x-k8s.io/v1alpha4
 kind: Cluster
 networking:
+
   apiServerAddress: "127.0.0.1"
   apiServerPort: 6443
   podSubnet: "10.240.0.0/16"

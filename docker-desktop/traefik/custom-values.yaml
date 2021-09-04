@@ -1,0 +1,22 @@
+# File custom-values.yml
+## Install with "helm install --values=./custom-values.yml traefik traefik/traefik
+### https://traefik.io/blog/install-and-configure-traefik-with-helm/
+image:
+  tag: "v2.5.2"
+additionalArguments:
+  - --log.level=DEBUG
+#  - --providers.file.filename=/data/traefik-config.yaml
+#ports:
+#  web:
+#    redirectTo: websecure
+ingressRoute:
+  dashboard:
+    enabled: false
+#persistence:
+#  enabled: true
+#  path: /certs
+#  size: 128Mi
+#volumes:
+#  - mountPath: /data
+#    name: traefik-config
+#    type: configMap
