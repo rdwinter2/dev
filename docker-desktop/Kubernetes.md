@@ -478,4 +478,9 @@ kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.11/samp
 istioctl dashboard kiali
 
 
+
+# https://kubernetes.io/docs/tasks/administer-cluster/dns-debugging-resolution/#are-dns-queries-being-received-processed
+kubectl apply -f https://k8s.io/examples/admin/dns/dnsutils.yaml
+kubectl exec -i -t dnsutils -- nslookup google.com
+
 ```

@@ -11,10 +11,10 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.nexus.entrypoints=https"
+      - "traefik.http.routers.nexus.entrypoints=http"
       - "traefik.http.routers.nexus.rule=Host(`${NEXUS_SERVICE_NAME}.${DOMAINNAME}`)"
       - "traefik.http.routers.nexus.service=nexus"
-      - "traefik.http.routers.nexus.tls=true"
+      #- "traefik.http.routers.nexus.tls=true"
       #- "traefik.http.routers.nexus.tls.certResolver=step"
       - "traefik.http.services.nexus.loadbalancer.server.port=8081"
       #- "traefik.http.routers.nexus.middlewares=chain-no-auth@file"
@@ -34,16 +34,15 @@ services:
     environment:
       - INSTALL4J_ADD_VM_PARAMS=-Xms2048m -Xmx2g -XX:MaxDirectMemorySize=3g
     networks:
-      traefik:
-        ipv4_address: ${NEXUS_IP}
+      - kind
     #dns:
     #  - ${COREDNS_IP}
     #dns_search: ${DOMAINNAME}
 
 networks:
-  traefik:
-    external:
-      name: traefik
+  kind:
+    external: true
+    name: kind
 
 volumes:
   nexus-data:

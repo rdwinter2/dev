@@ -1,0 +1,12 @@
+http:
+  routers:
+    nexus3-localhost:
+      rule: "Host(`nexus3.localhost`)"
+      service: "nexus3-localhost"
+      entryPoints:
+        - "http"
+  services:
+    nexus3-localhost:
+      loadbalancer:
+        servers:
+          - url: "http://172.23.255.200"

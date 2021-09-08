@@ -3,21 +3,21 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: nexus 
----
-kind: PersistentVolume
-apiVersion: v1
-metadata:
-  name: nexus-data
-  labels:
-    type: local
-spec:
-  capacity:
-    storage: 10Gi
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local
-  hostPath:
-    path: "/data/nexus-data"
+#---
+#kind: PersistentVolume
+#apiVersion: v1
+#metadata:
+#  name: nexus-data
+#  labels:
+#    type: local
+#spec:
+#  capacity:
+#    storage: 10Gi
+#  accessModes:
+#    - ReadWriteOnce
+#  storageClassName: local
+#  hostPath:
+#    path: "/data/nexus-data"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -29,11 +29,10 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local
+#  storageClassName: local
   resources:
     requests:
       storage: 10Gi
-
 ---
 # Source: nexus3/templates/serviceaccount.yaml
 apiVersion: v1
@@ -748,7 +747,7 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`nexus.localhost`)
+    - match: Host(`nexus3.localhost`)
       kind: Rule
 #      middlewares:
 #        - name: headers-default@file

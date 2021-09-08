@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+
+  traefik-git-sync:
+    container_name: traefik-git-sync
+    hostname: traefik-git-sync
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/rdwinter2/git-sync:${GIT_SYNC_TAG}@sha256:${GIT_SYNC_DIGEST}
+    restart: always
+    environment:
+      GIT_SYNC_REPO: "${TRAEFIK_GIT_SYNC_REPO}"
+      GIT_SYNC_BRANCH: "${TRAEFIK_GIT_SYNC_BRANCH}"
+      GIT_SYNC_PERIOD: "${TRAEFIK_GIT_SYNC_PERIOD}"
+    volumes:
+      - ${TRAEFIK_GIT_SYNC_DIR}:/tmp/git:rw
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+
+  coredns-git-sync:
+    container_name: coredns-git-sync
+    hostname: coredns-git-sync
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/rdwinter2/git-sync:${GIT_SYNC_TAG}@sha256:${GIT_SYNC_DIGEST}
+    restart: always
+    environment:
+      GIT_SYNC_REPO: "${COREDNS_GIT_SYNC_REPO}"
+      GIT_SYNC_BRANCH: "${COREDNS_GIT_SYNC_BRANCH}"
+      GIT_SYNC_PERIOD: "${COREDNS_GIT_SYNC_PERIOD}"
+    volumes:
+      - ${COREDNS_GIT_SYNC_DIR}:/tmp/git
+      - /etc/ssl/certs:/etc/ssl/certs:ro
