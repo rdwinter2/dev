@@ -3,8 +3,8 @@ version: "3.8"
 services:
   traefik:
     container_name: traefik
-    hostname: ${TRAEFIK_SERVICE_NAME}.${DOMAINNAME}
-    domainname: ${DOMAINNAME}
+    hostname: traefik.localhost
+    domainname: localhost
     image: ${REGISTRY}/library/traefik:${TRAEFIK_TAG}@sha256:${TRAEFIK_DIGEST}
     depends_on:
       - step-ca
@@ -50,8 +50,8 @@ services:
       - --certificatesresolvers.step.acme.caServer=https://${CA_SERVER_IP_PORT}/acme/${ACME_PROVIDER}/directory
       - --certificatesResolvers.step.acme.httpChallenge.entryPoint=http
       - --certificatesresolvers.step.acme.storage=/acme/acme.json
-      #- --tls.stores.default.defaultCertificate.certFile=/certs/${DOMAINNAME}.crt
-      #- --tls.stores.default.defaultCertificate.keyFile=/certs/${DOMAINNAME}.key
+      #- --tls.stores.default.defaultCertificate.certFile=/certs/localhost.crt
+      #- --tls.stores.default.defaultCertificate.keyFile=/certs/localhost.key
     environment:
       - LEGO_CA_CERTIFICATES=/rootCA/${ROOT_CA_CERT}
       - TZ=$TZ
@@ -71,7 +71,7 @@ services:
         ipv4_address: ${TRAEFIK_IP} # You can specify a static IP
     dns:
       - ${COREDNS_IP}
-    dns_search: ${DOMAINNAME}
+    dns_search: localhost
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.http-catchall.entrypoints=http"
@@ -81,7 +81,7 @@ services:
       - "traefik.http.middlewares.https_redirect.redirectscheme.permanent=true"
       #traefik dashboard rules
       - "traefik.http.routers.dashboard.entrypoints=https"
-      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_SERVICE_NAME}.${DOMAINNAME}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
+      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_SERVICE_NAME}.localhost`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
       - "traefik.http.routers.dashboard.middlewares=chain-no-auth@file"
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.tls=true"
@@ -89,8 +89,8 @@ services:
 
   step-ca:
     container_name: step-ca
-    hostname: ${STEP_CA_SERVICE_NAME}.${DOMAINNAME}
-    domainname: ${DOMAINNAME}
+    hostname: ${STEP_CA_SERVICE_NAME}.localhost
+    domainname: localhost
     image: ${REGISTRY}/smallstep/step-ca:${STEP_CA_TAG}@sha256:${STEP_CA_DIGEST}
     depends_on:
       - coredns
@@ -99,7 +99,7 @@ services:
     - "8443"
     labels:
      - "traefik.enable=true"
-     - "traefik.tcp.routers.step-ca.rule=HostSNI(`${STEP_CA_SERVICE_NAME}.${DOMAINNAME}`)"
+     - "traefik.tcp.routers.step-ca.rule=HostSNI(`${STEP_CA_SERVICE_NAME}.localhost`)"
      - "traefik.tcp.routers.step-ca.service=step-ca"
      - "traefik.tcp.routers.step-ca.tls.passthrough=true"
      - "traefik.tcp.services.step-ca.loadbalancer.server.port=8443"
@@ -120,12 +120,12 @@ services:
         ipv4_address: ${STEP_CA_IP}
     dns:
       - ${COREDNS_IP}
-    dns_search: ${DOMAINNAME}
+    dns_search: localhost
 
   coredns:
     container_name: coredns
-    hostname: ${COREDNS_SERVICE_NAME}.${DOMAINNAME}
-    domainname: ${DOMAINNAME}
+    hostname: ${COREDNS_SERVICE_NAME}.localhost
+    domainname: localhost
     image: ${REGISTRY}/coredns/coredns:${COREDNS_TAG}@sha256:${COREDNS_DIGEST}
     restart: unless-stopped
     expose:
@@ -142,8 +142,8 @@ services:
 
   nexus:
     container_name: nexus
-    hostname: ${NEXUS_SERVICE_NAME}.${DOMAINNAME}
-    domainname: ${DOMAINNAME}
+    hostname: ${NEXUS_SERVICE_NAME}.localhost
+    domainname: localhost
     image: ${REGISTRY}/sonatype/nexus3:${NEXUS_TAG}@sha256:${NEXUS_DIGEST}
     depends_on:
       - traefik
@@ -151,14 +151,14 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.nexus.entrypoints=https"
-      - "traefik.http.routers.nexus.rule=Host(`${NEXUS_SERVICE_NAME}.${DOMAINNAME}`)"
+      - "traefik.http.routers.nexus.rule=Host(`${NEXUS_SERVICE_NAME}.localhost`)"
       - "traefik.http.routers.nexus.service=nexus"
       - "traefik.http.routers.nexus.tls=true"
       - "traefik.http.routers.nexus.tls.certResolver=step"
       - "traefik.http.services.nexus.loadbalancer.server.port=8081"
       - "traefik.http.routers.nexus.middlewares=chain-no-auth@file"
       #- "traefik.http.routersnexus.middlewares=nexus-redirect@docker,chain-oauth@file"
-      #- "traefik.http.routers.nexus-http.rule=Host(`${NEXUS_SERVICE_NAME}.${DOMAINNAME}`)"
+      #- "traefik.http.routers.nexus-http.rule=Host(`${NEXUS_SERVICE_NAME}.localhost`)"
       #- "traefik.http.routers.nexus-http.service=nexus-http"
       #- "traefik.http.routers.nexus-http.entrypoints=http"
       #- "traefik.http.services.nexus-http.loadbalancer.server.port=8081"
@@ -175,18 +175,18 @@ services:
         ipv4_address: ${NEXUS_IP}
     dns:
       - ${COREDNS_IP}
-    dns_search: ${DOMAINNAME}
+    dns_search: localhost
 
   gitlab:
     container_name: gitlab
-    hostname: ${GITLAB_SERVICE_NAME}.${DOMAINNAME}
-    domainname: ${DOMAINNAME}
+    hostname: ${GITLAB_SERVICE_NAME}.localhost
+    domainname: localhost
     image: ${REGISTRY}/gitlab/gitlab-ce:${GITLAB_TAG}@sha256:${GITLAB_DIGEST}
     environment:
       GITLAB_OMNIBUS_CONFIG: |
-        external_url = 'https://${GITLAB_SERVICE_NAME}.${DOMAINNAME}'
-        registry_external_url 'https://${GITLAB_REGISTRY_SERVICE_NAME}.${DOMAINNAME}'
-        pages_external_url 'https://${GITLAB_PAGES_SERVICE_NAME}.${DOMAINNAME}'
+        external_url = 'https://${GITLAB_SERVICE_NAME}.localhost'
+        registry_external_url 'https://${GITLAB_REGISTRY_SERVICE_NAME}.localhost'
+        pages_external_url 'https://${GITLAB_PAGES_SERVICE_NAME}.localhost'
         nginx['redirect_http_to_https'] = false
         nginx['listen_port'] = 80
         nginx['listen_https'] = false
@@ -219,7 +219,7 @@ services:
             host: '${LDAP_HOST}'
             port: 389
             uid: 'sAMAccountName'
-            bind_dn: '${LDAP_USER}@${DOMAINNAME}'
+            bind_dn: '${LDAP_USER}@localhost'
             password: '${LDAP_USER_PASSWORD}'
             encryption: 'plain'
             verify_certificates: false
@@ -235,7 +235,7 @@ services:
       - gitlab_data:/var/opt/gitlab
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.gitlab.rule=Host(`${GITLAB_SERVICE_NAME}.${DOMAINNAME}`)"
+      - "traefik.http.routers.gitlab.rule=Host(`${GITLAB_SERVICE_NAME}.localhost`)"
       - "traefik.http.routers.gitlab.service=gitlab"
       - "traefik.http.routers.gitlab.entrypoints=https"
       - "traefik.http.routers.gitlab.tls=true"
@@ -259,13 +259,13 @@ services:
     restart: unless-stopped
     dns:
       - ${COREDNS_IP}
-    dns_search: ${DOMAINNAME}
+    dns_search: localhost
 
 # Portainer - WebUI for Containers
   portainer:
     container_name: portainer
-    hostname: ${PORTAINER_SERVICE_NAME}.${DOMAINNAME}
-    domainname: ${DOMAINNAME}
+    hostname: ${PORTAINER_SERVICE_NAME}.localhost
+    domainname: localhost
     image: ${REGISTRY}/portainer/portainer-ce:${PORTAINER_TAG}@sha256:${PORTAINER_DIGEST}
     restart: unless-stopped
     command: --admin-password "$$2y$$05$$Z8GTyIFi2oPNHeSW9lxBIeW4TRbULUGvPPGMpuCtaVmvidukTDWaS" -H unix:///var/run/docker.sock
@@ -274,7 +274,7 @@ services:
         ipv4_address: ${PORTAINER_IP}
     dns:
       - ${COREDNS_IP}
-    dns_search: ${DOMAINNAME}
+    dns_search: localhost
     security_opt:
       - no-new-privileges:true
     volumes:
@@ -285,7 +285,7 @@ services:
       - TZ=$TZ
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.portainer.rule=Host(`${PORTAINER_SERVICE_NAME}.${DOMAINNAME}`)"
+      - "traefik.http.routers.portainer.rule=Host(`${PORTAINER_SERVICE_NAME}.localhost`)"
       - "traefik.http.routers.portainer.service=portainer"
       - "traefik.http.routers.portainer.entrypoints=https"
       - "traefik.http.routers.portainer.tls=true"
@@ -299,7 +299,7 @@ services:
   whoami:
     container_name: whoami
     hostname: whoami
-    domainname: ${DOMAINNAME}
+    domainname: localhost
     image: ${REGISTRY}/containous/whoami:${WHOAMI_TAG}@sha256:${WHOAMI_DIGEST}
     restart: unless-stopped
     networks:
@@ -307,10 +307,10 @@ services:
         ipv4_address: ${WHOAMI_IP}
     dns:
       - ${COREDNS_IP}
-    dns_search: ${DOMAINNAME}
+    dns_search: localhost
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.whoami.rule=Host(`${WHOAMI_SERVICE_NAME}.${DOMAINNAME}`)"
+      - "traefik.http.routers.whoami.rule=Host(`${WHOAMI_SERVICE_NAME}.localhost`)"
       - "traefik.http.routers.whoami.service=whoami"
       - "traefik.http.routers.whoami.entrypoints=https"
       - "traefik.http.routers.whoami.middlewares=chain-no-auth@file"
@@ -323,7 +323,7 @@ services:
   promtail: 
     container_name: promtail
     hostname: promtail
-    domainname: ${DOMAINNAME}
+    domainname: localhost
     image: ${REGISTRY}/grafana/promtail:${PROMTAIL_TAG}@sha256:${PROMTAIL_DIGEST}
     networks:
       - loki
@@ -338,7 +338,7 @@ services:
   #loki:
   #  container_name: loki 
   #  hostname: loki
-  #  domainname: ${DOMAINNAME}
+  #  domainname: localhost
   #  image: ${REGISTRY}/grafana/loki:${LOKI_TAG}@sha256:${LOKI_DIGEST}
   #  restart: unless-stopped
   #  ports:
@@ -350,7 +350,7 @@ services:
   #grafana:
   #  container_name: grafana
   #  hostname: grafana
-  #  domainname: ${DOMAINNAME}
+  #  domainname: localhost
   #  image: ${REGISTRY}/grafana/grafana:${GRAFANA_TAG}@sha256:${GRAFANA_DIGEST}
   #  logging:
   #    driver: loki
@@ -364,10 +364,10 @@ services:
   #      ipv4_address: ${GRAFANA_IP}
   #  dns:
   #    - ${COREDNS_IP}
-  #  dns_search: ${DOMAINNAME}
+  #  dns_search: localhost
   #  labels:
   #    - "traefik.enable=true"
-  #    - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_SERVICE_NAME}.${DOMAINNAME}`)"
+  #    - "traefik.http.routers.grafana.rule=Host(`${GRAFANA_SERVICE_NAME}.localhost`)"
   #    - "traefik.http.routers.grafana.service=grafana"
   #    - "traefik.http.routers.grafana.entrypoints=https"
   #    - "traefik.http.routers.grafana.middlewares=chain-no-auth@file"

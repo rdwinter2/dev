@@ -1,0 +1,12 @@
+http:
+  routers:
+    loki-grafana-localhost:
+      rule: "Host(`loki-grafana.localhost`)"
+      service: "loki-grafana-localhost"
+      entryPoints:
+        - "http"
+  services:
+    loki-grafana-localhost:
+      loadbalancer:
+        servers:
+          - url: "http://172.23.255.200"

@@ -49,10 +49,10 @@ kubectl cluster-info --context kind-kind
 # Install cilium
 helm repo add cilium https://helm.cilium.io/
 
-docker pull cilium/cilium:v1.10.3
-kind load docker-image cilium/cilium:v1.10.3
+docker pull cilium/cilium:v1.10.4
+kind load docker-image cilium/cilium:v1.10.4
 
-helm install cilium cilium/cilium --version 1.10.3 \
+helm install cilium cilium/cilium --version 1.10.4 \
    --namespace kube-system \
    --set nodeinit.enabled=true \
    --set kubeProxyReplacement=partial \
