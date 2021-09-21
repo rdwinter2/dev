@@ -32,7 +32,7 @@ if [[ -n "$FIRST_TIME" && -n "${SUBORDINATE_CERT}" ]]; then
   echo "Copying ${SUBORDINATE_KEY} to intermediate_ca_key"
   cp /secrets/${SUBORDINATE_KEY} $(step path)/secrets/intermediate_ca_key
   echo "Copying the password file of ${SUBORDINATE_KEY}"
-  cp /secrets/password $(step path)/secrets/password
+  cp /secrets/intermediateCA_passwd $(step path)/secrets/password
   chmod 600 $(step path)/secrets/*
   echo "Copying ${SUBORDINATE_CERT} to intermediate_ca.crt"
   cp /certs/${SUBORDINATE_CERT} $(step path)/certs/intermediate_ca.crt

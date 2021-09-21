@@ -1,0 +1,12 @@
+http:
+  routers:
+    whoami-localhost:
+      rule: "Host(`whoami.localhost`)"
+      service: "whoami-localhost"
+      entryPoints:
+        - "http"
+  services:
+    whoami-localhost:
+      loadbalancer:
+        servers:
+          - url: "http://172.23.255.200"

@@ -2,12 +2,19 @@
 
 ## get krew for plugins
 
+```sh
+scripts/generateCerts.sh
+```
+
+Then install the root_ca.crt and the client client.p12 in the Windows trust store.
+
+```sh
 kind create cluster --name kind --image kindest/node:v1.22.1@sha256:100b3558428386d1372591f8d62add85b900538d94db8e455b66ebaf05a3ca3a --config=./kind.yaml
 
 export ADDRESS_PREFIX=$(docker network inspect kind | jq ".[0].IPAM.Config[0].Gateway" | sed -e 's/"//g' | awk -F. '{print $1 "." $2}')
 echo $ADDRESS_PREFIX
 
-kubectl apply -f coredns_configmap.yaml
+cat coredns_configmap.yaml | sed "s/1.1.1.1/${ADDRESS_PREFIX}.255.252/" | kubectl apply -f -
 kubectl rollout restart -n kube-system deployment coredns
 
 kubectl cluster-info --context kind-kind
@@ -28,11 +35,35 @@ data:
     - name: default
       protocol: layer2
       addresses:
-      - $address_prefix.255.200-$address_prefix.255.250
+      - $address_prefix.255.200-$address_prefix.255.240
 EOF
+
+istioctl install -y -f ../docker-desktop/kind-istio.yaml
+kubectl label namespace default istio-injection=enabled
+
+
+vol() {
+  vol=$1
+  docker volume ls | grep --quiet "local     ${vol}" || docker volume create ${vol}
+}
+for i in gitlab-runner_conf gitlab_config gitlab_data gitlab_logs nexus-data step-ca traefik-acme; do
+  vol $i
+done
+
+# Delete and recreate docker volumes
+for i in gitlab-runner_conf gitlab_config gitlab_data gitlab_logs nexus-data step-ca traefik-acme; do
+  docker volume rm $i
+  vol $i
+done
+
+# only modify file if necessary
+# egrep -q "^ADDRESS_PREFIX=${ADDRESS_PREFIX}$" .env || gawk -i inplace "/^ADDRESS_PREFIX=/{gsub(/=.*$/, \"=${ADDRESS_PREFIX}\")};{print}" .env
 
 docker-compose up -d -e ADDRESS_PREFIX
 
+
+docker exec -it nexus cat /nexus-data/admin.password
+```
 
 ## Loki
 helm repo add grafana https://grafana.github.io/helm-charts

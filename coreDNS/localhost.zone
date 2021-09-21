@@ -1,0 +1,20 @@
+$ORIGIN localhost.
+@	IN	SOA	coredns.localhost. zone-admin.localhost. (
+	2021092017	; serial number
+	3600		; time to refresh
+	600 		; time to retry
+	604800 	    ; time to expire
+	1800		; minimum TTL
+)
+traefik         IN A 172.23.255.254
+subordinate-ca  IN A 172.23.255.253
+nexus           IN A 172.23.255.254
+repo            IN A 172.23.255.254
+gitlab          IN A 172.23.255.254
+registry        IN A 172.23.255.254
+pages           IN A 172.23.255.254
+portainer       IN A 172.23.255.254
+whoami          IN A 172.23.255.254
+grafana         IN A 172.23.255.254
+*.pages         IN A 172.23.255.254
+*.kind          IN A 172.23.255.254

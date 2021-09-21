@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-step_tag=0.17.1
+step_tag=0.17.2
 dir=$HOME/.certs
 mkdir -p $dir
 chmod 700 $dir
