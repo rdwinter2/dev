@@ -4,6 +4,9 @@
 
 ```sh
 scripts/generateCerts.sh
+sudo cp ~/.certs/root_ca.crt /usr/local/share/ca-certificates/root_ca.crt
+sudo cp ~/.certs/intermediate_ca.crt /usr/local/share/ca-certificates/intermediate_ca.crt
+sudo /usr/sbin/update-ca-certificates
 ```
 
 Then install the root_ca.crt and the client client.p12 in the Windows trust store.
@@ -91,4 +94,67 @@ spec:
       port: 80
 EOF
 
+## python-gitlab
 
+```sh
+sudo pip install --upgrade python-gitlab
+
+cat <<-EOF | sudo tee /etc/python-gitlab.cfg > /dev/null
+[global]
+default = localhost-gitlab
+ssl_verify = false
+timeout = 5
+
+[localhost-gitlab]
+url = http://172.23.255.250
+private_token = xdBzoMReUxtxFJ1N_yAp
+api_version = 4
+
+[gitlab-com]
+url = https://gitlab.com
+
+
+EOF
+```
+
+## Network Debugging
+
+```sh
+docker run -it --net container:traefik nicolaka/netshoot
+```
+
+## Install Ansible
+
+sudo apt update
+sudo apt upgrade --yes
+sudo apt install --yes software-properties-common
+sudo add-apt-repository --yes --update ppa:ansible/ansible
+sudo apt install --yes ansible
+
+
+mkdir python-gitlab
+git clone https://github.com/python-gitlab/python-gitlab.git
+cd python-gitlab
+tag=v2.10.1
+git checkout $tag
+docker build -t python-gitlab:$tag .
+git checkout master
+
+docker run -it --rm --net kind -e GITLAB_PRIVATE_TOKEN=xdBzoMReUxtxFJ1N_yAp -v /etc/python-gitlab.cfg:/python-gitlab.cfg:ro python-gitlab:$tag <command> ...
+
+
+docker run -it --rm --net kind -e GITLAB_PRIVATE_TOKEN=xdBzoMReUxtxFJ1N_yAp -v /etc/python-gitlab.cfg:/python-gitlab.cfg:ro python-gitlab:$tag project list
+
+docker run -it --rm --net kind -e GITLAB_PRIVATE_TOKEN=$(ansible-vault view ~/.ansible/.logins/gitlab.com) -v /etc/python-gitlab.cfg:/python-gitlab.cfg python:3.9.7 bash
+pip install python-gitlab
+cat <<-EOF > /etc/python-gitlab.cfg
+[global]
+default = gitlab
+ssl_verify = true
+timeout = 5
+
+[gitlab]
+url = https://gitlab.com
+api_version = 4
+EOF
+gitlab project list

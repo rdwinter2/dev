@@ -1,0 +1,17 @@
+http:
+  routers:
+    gitlab:
+      rule: "Host(`gitlab9.localhost`)"
+      service: "gitlab"
+      entryPoints:
+        - "https"
+      tls:
+        options: simple
+        certResolver: step
+      middlewares:
+        - chain-no-auth
+  services:
+    gitlab:
+      loadbalancer:
+        servers:
+          - url: "http://172.23.255.250"

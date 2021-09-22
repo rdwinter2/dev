@@ -68,3 +68,21 @@ step certificate p12 client.p12 \
   --ca=intermediate_ca.crt \
   --password-file=client_passwd \
 "
+
+[[ -f $dir/wsl.crt ]] || \
+docker run -it --rm --user=$(id -u):$(id -g) -v $dir:/home/step smallstep/step-cli:${step_tag} bash -c " \
+step certificate create 'WSL Client Certificate' \
+  wsl.crt wsl.key \
+  --profile=leaf \
+  --ca=intermediate_ca.crt \
+  --ca-key=intermediate_ca.key \
+  --ca-password-file=intermediateCA_passwd \
+  --not-after 2160h \
+  --no-password \
+  --insecure \
+"
+
+# sudo cp ~/.certs/root_ca.crt /usr/local/share/ca-certificates/root_ca.crt
+# sudo cp ~/.certs/intermediate_ca.crt /usr/local/share/ca-certificates/intermediate_ca.crt
+# sudo /usr/sbin/update-ca-certificates
+# curl -vvv --cert ~/.certs/wsl.crt --key ~/.certs/wsl.key https://nexus.localhost

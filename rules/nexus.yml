@@ -1,0 +1,17 @@
+http:
+  routers:
+    nexus:
+      rule: "Host(`nexus9.localdomain`)"
+      service: "nexus"
+      priority: 1
+      entryPoints:
+        - "https"
+      tls:
+        certResolver: step
+      middlewares:
+        - chain-no-auth
+  services:
+    nexus:
+      loadbalancer:
+        servers:
+          - url: "http://172.23.255.251:8081"

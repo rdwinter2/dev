@@ -1,5 +1,11 @@
 tls:
   options:
+    simple:
+      minVersion: VersionTLS12
+      sniStrict: true
+      clientAuth:
+        caFiles:
+          - /rootCA/root_ca.crt
     default:
       minVersion: VersionTLS13
       sniStrict: true
