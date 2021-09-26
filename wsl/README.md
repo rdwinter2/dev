@@ -158,3 +158,144 @@ url = https://gitlab.com
 api_version = 4
 EOF
 gitlab project list
+EOF
+
+sudo pip3 install -U Commitizen
+
+curl -s https://raw.githubusercontent.com/zaquestion/lab/master/install.sh | sudo bash
+
+
+## oh-my-zsh 
+
+runs less command with -R (repaint). You can disable this behavior by adding the following line at the end of your ~/.zshrc
+
+unset LESS;
+
+## Minikube on WSL with HyperV
+
+Windows 
+
+Chocolatey
+
+https://mudrii.medium.com/kubernetes-local-development-with-minikube-on-hyper-v-windows-10-75f52ad1ed42
+
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString(‘https://chocolatey.org/install.ps1'))
+
+choco upgrade chocolatey -y
+choco install kubernetes-cli -y
+choco install minikube -y
+minikube version
+minikube update-check
+
+minikube start --driver=hyperv --cpus=4 --memory=6144 --hyperv-virtual-switch="WSL"
+
+minikube stop
+Set-VMMemory minikube -DynamicMemoryEnabled $false
+minikube start
+
+minikube addons list
+minikube addons enable heapster
+minikube status
+minikube service list
+minikube dashboard
+minikube dashboard --url
+minikube ssh
+
+
+kubectl config use-context minikube
+kubectl config current-context
+kubectl get po -n kube-system
+kubectl get po — all-namespaces
+kubectl get all — all-namespaces
+kubectl api-versions | grep rbac
+kubectl version
+kubectl cluster-info
+kubectl api-versions
+
+kubectl run hello-minikube — image=k8s.gcr.io/echoserver:1.4 — port=8080 
+kubectl expose deployment hello-minikube — type=NodePort
+kubectl get services
+kubectl get deploy
+kubectl get pod
+
+minikube ip
+
+
+```powershell
+Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+minikube start --driver=hyperv 
+minikube config set driver hyperv
+
+minikube stop
+
+Go into settings and "Enable Dynamic Memory"
+"External Wired Switch"
+
+minikube start --vm-driver hyperv --hyperv-virtual-switch "WSL"
+
+
+
+Download latest stable docker CLI from https://download.docker.com/win/static/stable/x86_64/
+
+Copy docker.exe to C:\Users\rdwin\AppData\Local\Microsoft\WindowsApps
+
+WSL Ubuntu
+
+```sh
+sudo apt-get update
+sudo apt-get upgrade
+sudo apt-get install \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+echo \
+  "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install docker-ce-cli
+
+
+# https://magda.io/docs/installing-minikube.html
+
+~/.local/bin/minikube
+#!/bin/sh
+/mnt/c/ProgramData/chocolatey/bin/minikube.exe $@
+
+minikube-go
+#!/bin/sh
+eval $(minikube docker-env --shell=bash)
+export DOCKER_CERT_PATH=$(wslpath -u "${DOCKER_CERT_PATH}")
+
+PS> Set-NetIPInterface -ifAlias "vEthernet (WSL)" -Forwarding Enabled
+PS> Set-NetIPInterface -ifAlias "vEthernet (Default Switch)" -Forwarding Enabled
+
+Get-NetIPInterface | where {$_.InterfaceAlias -eq 'vEthernet (WSL)' -or $_.InterfaceAlias -eq 'vEthernet (K8s-Switch)'} | Set-NetIPInterface -Forwarding Enabled
+
+
+#Create switch
+New-VMSwitch –SwitchName “NAT” –SwitchType Internal –Verbose
+# Get ifindex of new switch
+Get-NetAdapter
+#Create gateway
+New-NetIPAddress –IPAddress 192.168.0.1 -PrefixLength 24 -InterfaceIndex 10 –Verbose
+#Create NAT Network
+New-NetNat –Name NATNetwork –InternalIPInterfaceAddressPrefix 192.168.1.0/24 –Verbose
+#Change VMs to use new NAT switch
+Get-VM | Get-VMNetworkAdapter | Connect-VMNetworkAdapter –SwitchName “NAT"
+
+
+minikube delete --all --purge
+minikube start --driver=hyperv --cpus=4 --memory=6144 
+
+
+Set-NetIPInterface -ifAlias "vEthernet (WSL)" -Forwarding Enabled
+Set-NetIPInterface -ifAlias "vEthernet (Default Switch)" -Forwarding Enabled
+
+
+Set-NetIPInterface -ifAlias "vEthernet (minikube)" -Forwarding Enabled
+
+```
