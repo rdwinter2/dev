@@ -1,1 +1,3 @@
-ipconfig /flushdns
+#!/bin/bash
+
+ipconfig.exe /flushdns

@@ -185,6 +185,7 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.We
 choco upgrade chocolatey -y
 choco install kubernetes-cli -y
 choco install minikube -y
+choco install kind -y
 minikube version
 minikube update-check
 
@@ -265,13 +266,13 @@ sudo apt-get install docker-ce-cli
 #!/bin/sh
 /mnt/c/ProgramData/chocolatey/bin/minikube.exe $@
 
-minikube-go
+~/.local/bin/minikube-go
 #!/bin/sh
 eval $(minikube docker-env --shell=bash)
 export DOCKER_CERT_PATH=$(wslpath -u "${DOCKER_CERT_PATH}")
 
-PS> Set-NetIPInterface -ifAlias "vEthernet (WSL)" -Forwarding Enabled
-PS> Set-NetIPInterface -ifAlias "vEthernet (Default Switch)" -Forwarding Enabled
+Set-NetIPInterface -ifAlias "vEthernet (WSL)" -Forwarding Enabled
+Set-NetIPInterface -ifAlias "vEthernet (Default Switch)" -Forwarding Enabled
 
 Get-NetIPInterface | where {$_.InterfaceAlias -eq 'vEthernet (WSL)' -or $_.InterfaceAlias -eq 'vEthernet (K8s-Switch)'} | Set-NetIPInterface -Forwarding Enabled
 
@@ -299,3 +300,120 @@ Set-NetIPInterface -ifAlias "vEthernet (Default Switch)" -Forwarding Enabled
 Set-NetIPInterface -ifAlias "vEthernet (minikube)" -Forwarding Enabled
 
 ```
+
+
+```powershell
+& minikube -p minikube docker-env | Invoke-Expression
+```
+
+Python
+
+https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe
+
+3.1.2. Removing the MAX_PATH Limitation
+
+https://docs.python.org/3/using/windows.html
+
+In the latest versions of Windows, this limitation can be expanded to approximately 32,000 characters. Your administrator will need to activate the “Enable Win32 long paths” group policy, or set LongPathsEnabled to 1 in the registry key HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem.
+
+
+
+## Debian
+
+sudo update-alternatives --set iptables /usr/sbin/iptables-legacy
+sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+
+sudo mkdir /sys/fs/cgroup/systemd
+sudo mount -t cgroup -o none,name=systemd cgroup /sys/fs/cgroup/systemd
+
+cd /tmp
+wget --content-disposition \
+  "https://gist.githubusercontent.com/djfdyuruiry/6720faa3f9fc59bfdf6284ee1f41f950/raw/952347f805045ba0e6ef7868b18f4a9a8dd2e47a/install-sg.sh"
+
+
+  rdwinter2@DESKTOP-72MKB01:/tmp$ cat install-sg.sh 
+#! /usr/bin/env bash
+set -e
+
+# change these if you want
+UBUNTU_VERSION="20.04"
+GENIE_VERSION="1.44"
+
+GENIE_FILE="systemd-genie_${GENIE_VERSION}_amd64"
+GENIE_FILE_PATH="/tmp/${GENIE_FILE}.deb"
+GENIE_DIR_PATH="/tmp/${GENIE_FILE}"
+
+function installDebPackage() {
+  # install repackaged systemd-genie
+  sudo dpkg -i "${GENIE_FILE_PATH}"
+
+  rm -rf "${GENIE_FILE_PATH}"
+}
+
+function downloadDebPackage() {
+  rm -f "${GENIE_FILE_PATH}"
+
+  pushd /tmp
+
+  wget --content-disposition \
+    "https://github.com/arkane-systems/genie/releases/download/v${GENIE_VERSION}/systemd-genie_${GENIE_VERSION}_amd64.deb"
+
+  popd
+}
+
+function installDependencies() {
+  sudo apt-get update
+
+  wget --content-disposition \
+    "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb"
+
+  sudo dpkg -i packages-microsoft-prod.deb
+  rm packages-microsoft-prod.deb
+
+  sudo apt-get install apt-transport-https
+
+  sudo apt-get update
+  sudo apt-get install -y \
+    daemonize \
+    dotnet-runtime-5.0 \
+    systemd-container
+
+  sudo rm -f /usr/sbin/daemonize
+  sudo ln -s /usr/bin/daemonize /usr/sbin/daemonize
+}
+
+function main() {
+  installDependencies
+
+  downloadDebPackage
+
+  installDebPackage
+}
+
+
+
+https://arkane-systems.github.io/wsl-transdebian/
+
+sudo -s
+wget -O /etc/apt/trusted.gpg.d/wsl-transdebian.gpg https://arkane-systems.github.io/wsl-transdebian/apt/wsl-transdebian.gpg
+
+chmod a+r /etc/apt/trusted.gpg.d/wsl-transdebian.gpg
+
+cat << EOF > /etc/apt/sources.list.d/wsl-transdebian.list
+deb https://arkane-systems.github.io/wsl-transdebian/apt/ $(lsb_release -cs) main
+deb-src https://arkane-systems.github.io/wsl-transdebian/apt/ $(lsb_release -cs) main
+EOF
+
+apt update
+apt install daemonize dbus dotnet-runtime-5.0 gawk libc6 libstdc++6 policykit-1 systemd systemd-container
+apt install -y systemd-genie
+
+curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+sudo apt-get install software-properties-common
+sudo apt-add-repository https://packages.microsoft.com/debian/10/prod
+
+sudo apt-get update
+
+
+# WSL Debian
+

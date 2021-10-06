@@ -105,14 +105,16 @@ services:
      - "traefik.tcp.services.step-ca.loadbalancer.server.port=8443"
     volumes:
       - "step-ca:/home/step"
-      - "./scripts/entrypoint-step-ca.sh:/usr/local/bin/entrypoint-step-ca.sh"
-      - "./secrets:/secrets/"
-      - "./certs:/certs/"
+      - "$PWD/scripts/entrypoint-step-ca.sh:/usr/local/bin/entrypoint-step-ca.sh"
+      - "$HOME/.secrets:/secrets/"
+      - "$HOME/.certs:/certs/"
       - /etc/ssl/certs:/etc/ssl/certs:ro
     environment:
       - STEPDEBUG=1
       - DEFAULT_CERT_VALIDITY=${DEFAULT_CERT_VALIDITY:-720h}
       - MAX_CERT_VALIDITY=${MAX_CERT_VALIDITY:-2160h}
+      - DOCKER_STEPCA_INIT_NAME=smallstep
+      - DOCKER_STEPCA_INIT_DNS_NAMES=localhost,$(hostname -f),${STEP_CA_IP},${STEP_CA_SERVICE_NAME},${STEP_CA_SERVICE_NAME}.${DOMAINNAME}
     entrypoint: ["bash", "/usr/local/bin/entrypoint-step-ca.sh", "$DNSNAMES", "$CA_SERVER", "$RESOLVER", "$SUBORDINATE_CERT", "$SUBORDINATE_KEY", "$SUB_SIGNED_BY_CERT"]
     stop_grace_period: 30s
     networks:
