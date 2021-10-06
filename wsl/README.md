@@ -417,3 +417,30 @@ sudo apt-get update
 
 # WSL Debian
 
+# Smallstep 
+
+wget https://dl.step.sm/gh-release/cli/docs-cli-install/v0.17.6/step-cli_0.17.6_amd64.deb
+sudo dpkg -i step-cli_0.17.6_amd64.deb
+
+wget https://dl.step.sm/gh-release/certificates/docs-ca-install/v0.17.4/step-ca_0.17.4_amd64.deb
+sudo dpkg -i step-ca_0.17.4_amd64.deb
+
+docker container rm step-ca
+docker volume rm step-ca
+docker volume create step-ca
+docker run \
+  --name step-ca \
+  -v step-ca:/home/step \
+  -v "$HOME/.secrets:/secrets/" \
+  -v $HOME/.certs:/certs/ \
+  -v /etc/ssl/certs:/etc/ssl/certs:ro \
+  -v "$PWD/scripts/entrypoint-step-ca.sh:/usr/local/bin/entrypoint-step-ca.sh" \
+  --entrypoint /usr/local/bin/entrypoint-step-ca.sh \
+  smallstep/step-ca:0.17.4 \
+  -e DOCKER_STEPCA_INIT_NAME=smallstep \
+  -e DOCKER_STEPCA_INIT_DNS_NAMES=localhost,$(hostname -f),${STEP_CA_IP},${STEP_CA_SERVICE_NAME},${STEP_CA_SERVICE_NAME}.${DOMAINNAME}
+
+echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1) > .secrets/password
+
+step ca init --root=$HOME/.certs/intermediate_ca.crt --key=intermediate_ca.key --deployment-type=standalone --name=subordinate-ca --dns=localhost --dns=$(hostname -f) --provisioner=admin --address=:443 --password-file=.secrets/password
+

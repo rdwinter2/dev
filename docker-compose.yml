@@ -204,8 +204,8 @@ services:
         pages_nginx['proxy_set_headers'] = {"X-Forwarded-Proto" => "https","X-Forwarded-Ssl" => "on"}
         gitlab_pages['inplace_chroot'] = true
         nginx['client_max_body_size'] = '2G'
-        unicorn['worker_timeout'] = 60
-        unicorn['worker_processes'] = 4
+        puma['worker_timeout'] = 60
+        puma['worker_processes'] = 4
         sidekiq['concurrency'] = 15
         postgresql['shared_buffers'] = "512MB"
         gitlab_rails['initial_root_password'] = 'password'

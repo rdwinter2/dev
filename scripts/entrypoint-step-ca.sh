@@ -5,14 +5,13 @@ export MAX_CERT_VALIDITY=${MAX_CERT_VALIDITY-"2160h"}
 
 PASSWORDPATH=/home/step/secrets/password
 CONFIGPATH=/home/step/config/ca.json
-DNSNAMES=$1
 CA_SERVER=$2
 RESOLVER=$3
 SUBORDINATE_CERT=$4
 SUBORDINATE_KEY=$5
 SUB_SIGNED_BY_CERT=$6
 
-echo "$DNSNAMES $CA_SERVER $SUBORDINATE_CERT $SUBORDINATE_KEY $SUB_SIGNED_BY_CERT"
+echo "$CA_SERVER $SUBORDINATE_CERT $SUBORDINATE_KEY $SUB_SIGNED_BY_CERT"
 
 [[ -d /home/step/secrets ]] || mkdir -p /home/step/secrets
 [[ -f $PASSWORDPATH ]] || echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1) > $PASSWORDPATH
@@ -22,7 +21,7 @@ if [[ -n "$FIRST_TIME" ]]; then
   echo "This is the first time Step CA has started"
 fi
 # initialize step-ca as a self-signed root ca
-[ -n "$FIRST_TIME" ] && $(step ca init --name=step --provisioner=admin --dns=$DNSNAMES --with-ca-url=$CA_SERVER --address=:8443 --password-file=$PASSWORDPATH)
+[ -n "$FIRST_TIME" ] && $(step ca init --name=$DOCKER_STEPCA_INIT_NAME --provisioner=admin --dns=$DOCKER_STEPCA_INIT_DNS_NAMES --with-ca-url=$CA_SERVER --address=:8443 --password-file=$PASSWORDPATH)
 
 # if $SUBORDINATE_CERT is unset or the empty string create a selfsigned root
 if [[ -n "$FIRST_TIME" && -n "${SUBORDINATE_CERT}" ]]; then
