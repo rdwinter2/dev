@@ -1,5 +1,13 @@
 # WSL 2
 
+```
+sudo su -
+cat <<EOF >> /etc/wsl.conf
+[network]
+generateResolvConf = false
+EOF
+```
+
 ## get krew for plugins
 
 ```sh
