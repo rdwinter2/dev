@@ -444,3 +444,24 @@ echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1) > .secret
 
 step ca init --root=$HOME/.certs/intermediate_ca.crt --key=intermediate_ca.key --deployment-type=standalone --name=subordinate-ca --dns=localhost --dns=$(hostname -f) --provisioner=admin --address=:443 --password-file=.secrets/password
 
+# get control over /etc/resolv.conf
+cat <<EOF >> /etc/wsl.conf 
+[network]
+generateResolvConf = false
+EOF
+# /etc/resolv.conf disappears after every reboot
+# since we have genie start systemd via a Windows scheduled task
+# use systemd to run a script to put /etc/resolv.conf back
+[Unit]
+Description=Run once
+After=local-fs.target
+After=network.target
+#After=XXX
+
+[Service]
+ExecStart=/path/to/run/once/script.sh
+RemainAfterExit=true
+Type=oneshot
+
+[Install]
+WantedBy=multi-user.target

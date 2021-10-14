@@ -5,7 +5,8 @@ echo "Running script... 🚀"
 #sudo apt-key adv --keyserver keyring.debian.org --recv-keys 7EA0A9C3F273FCD8
 curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
 sudo apt-get update -yqq
-sudo apt-get install -yqq apt-transport-https bash-completion ca-certificates dnsutils gnupg-agent python3-jinja2 python3-yaml python3-cryptography software-properties-common wget jq jid build-essential gcc htop unzip zsh
+sudo apt-get install -yqq apt-transport-https bash-completion ca-certificates dnsutils gnupg-agent python3 python3-pip python3-jinja2 python3-yaml python3-cryptography software-properties-common wget jq jid build-essential gcc htop unzip zsh
+sudo ln -s /usr/bin/python3 /usr/bin/python
 ssh-keygen -o -a 100 -t ed25519 -f ~/.ssh/id_ed25519 -N "" -C "$(whoami)@$(hostname)"
 # use copied key instead
 cp -f ~/.secrets/id_ed25519* ~/.ssh
@@ -88,23 +89,22 @@ pids[1]=$!
 t=$(mktemp -d); pushd $t
 # GitHub cli - gh
 VERSION=$(curl -fsSL "https://api.github.com/repos/cli/cli/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-)
-curl -fsSL -O https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_amd64.tar.gz
-tar xvf ./gh_${VERSION}_linux_amd64.tar.gz
+curl -fsSL https://github.com/cli/cli/releases/download/v${VERSION}/gh_${VERSION}_linux_amd64.tar.gz | tar -xzf -
 sudo install --mode=755 --owner=root ./gh_${VERSION}_linux_amd64/bin/gh /usr/local/bin/
 sudo cp -r ./gh_${VERSION}_linux_amd64/share/man/man1/* /usr/share/man/man1/
-rm -rf ./gh_${VERSION}_linux_amd64*
+yes | rm -rf ./gh_${VERSION}_linux_amd64*
 # GitLab cli - lab
 VERSION=$(curl -fsSL "https://api.github.com/repos/zaquestion/lab/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-)
 curl -fsSL "https://github.com/zaquestion/lab/releases/download/v${VERSION}/lab_${VERSION}_linux_amd64.tar.gz" | tar -xzf -
 sudo install -m755 ./lab /usr/local/bin/lab
-rm -rf {LICENSE,README.md,lab}
+yes | rm -rf {LICENSE,README.md,lab}
 
 ## Flux v2
 #curl -s https://toolkit.fluxcd.io/install.sh | sudo bash
 VERSION=$(curl -fsSL "https://api.github.com/repos/fluxcd/flux2/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-)
 curl -fsSL "https://github.com/fluxcd/flux2/releases/download/v${VERSION}/flux_${VERSION}_linux_amd64.tar.gz" | tar -xzf -
 sudo install -m755 ./flux /usr/local/bin
-rm -rf flux
+rm -f ./flux
 #
 sudo mkdir -p /usr/java
 curl -fsSL https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.9.1%2B1/OpenJDK11U-jdk_x64_linux_hotspot_11.0.9.1_1.tar.gz | sudo tar xzf - -C /usr/java
@@ -116,21 +116,25 @@ sudo curl -fsSL -O https://github.com/vmware-tanzu/octant/releases/download/v${o
 sudo apt-get install ./octant_${octant_vers}_Linux-64bit.deb
 curl -fsSL -O "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
 sudo install --mode=755 --owner=root ./kubectl /usr/local/bin
-curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+curl -fsSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 curl -fsSL https://github.com/jenkins-x/jx-cli/releases/download/$(curl -s https://api.github.com/repos/jenkins-x/jx-cli/releases/latest | jq '.tag_name' | sed 's/"//g')/jx-cli-linux-amd64.tar.gz | tar xzv 
 sudo install --mode=755 --owner=root ./jx /usr/local/bin
 VERSION=$(curl -fsSL "https://api.github.com/repos/kubernetes-sigs/kind/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-)
 curl -fsSL -o ./kind https://github.com/kubernetes-sigs/kind/releases/download/v${VERSION}/kind-linux-amd64
 sudo install --mode=755 --owner=root ./kind /usr/local/bin
+rm -f ./kind
 VERSION=$(curl -fsSL "https://api.github.com/repos/derailed/k9s/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-)
 curl -fsSL https://github.com/derailed/k9s/releases/download/v${VERSION}/k9s_Linux_x86_64.tar.gz | tar xzf - 
 sudo install --mode=755 --owner=root ./k9s /usr/local/bin
+yes | rm -f {k9s,LICENSE,README.md}
 sudo curl -fSL -o "/usr/local/bin/tk" "https://github.com/grafana/tanka/releases/download/v0.13.0/tk-linux-amd64"
 sudo chmod a+x "/usr/local/bin/tk"
 curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
 sudo install --mode=755 --owner=root ./kustomize /usr/local/bin
 curl -fLo cs https://git.io/coursier-cli-"$(uname | tr LD ld)"; chmod +x cs; yes | ./cs setup
 ### Ansible
+# pip install ansible
+# or
 sudo git clone https://github.com/ansible/ansible.git --recursive /opt/ansible
 
 mkdir --parents ~/.ansible/.logins
@@ -144,15 +148,12 @@ chmod 700 ~/.ansible
 chmod 700 ~/.ansible/.logins
 chmod 600 ~/.ansible/.vault_pass
 . ~/.bashrc
-popd
-pushd /opt
 VERSION=$(curl -fsSL "https://api.github.com/repos/istio/istio/releases" | jq '.[].tag_name' | sed 's/"//g' | grep -v "\-alpha\|\-beta\|\-rc" | sort --version-sort | tail -1)
-curl -fsSL https://github.com/istio/istio/releases/download/${VERSION}/istio-${VERSION}-linux-amd64.tar.gz | sudo tar -xzf -
-sudo ln -s /opt/istio-${VERSION} istio
+curl -fsSL https://github.com/istio/istio/releases/download/${VERSION}/istio-${VERSION}-linux-amd64.tar.gz | sudo tar -xzf - --directory /opt
+sudo ln -s /opt/istio-${VERSION} /opt/istio
 sudo chmod o+rx /opt/istio /opt/istio/bin /opt/istio/tools
 sudo chmod o+r /opt/istio/manifest.yaml
 export PATH="$PATH:/opt/istio/bin"
-popd
 
 newgrp docker
 docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
@@ -160,45 +161,78 @@ docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all
 cat <<-EOT | kind create cluster --name dev --image kindest/node:v1.22.1@sha256:100b3558428386d1372591f8d62add85b900538d94db8e455b66ebaf05a3ca3a --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  disableDefaultCNI: false
+  apiServerAddress: 127.0.0.1
+  apiServerPort: 6443
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.96.0.0/12"
+kubeadmConfigPatches:
+- |
+  kind: ClusterConfiguration
+  metadata:
+    name: config
+  apiServer:
+    extraArgs:
+      "v": "4"
+  controllerManager:
+    extraArgs:
+      "v": "4"
+  scheduler:
+    extraArgs:
+      "v": "4"
+  ---
+  kind: InitConfiguration
+  nodeRegistration:
+    kubeletExtraArgs:
+      "v": "4"
 nodes:
-- role: control-plane
-- role: control-plane
-- role: control-plane
-- role: worker
-- role: worker
-- role: worker
+ - role: control-plane
+   kubeadmConfigPatches:
+   - |
+     kind: InitConfiguration
+     nodeRegistration:
+       kubeletExtraArgs:
+         node-labels: "ingress-ready=true"
+         authorization-mode: "AlwaysAllow"
+ - role: worker
+   kubeadmConfigPatches:
+   - |
+     kind: JoinConfiguration
+     nodeRegistration:
+       kubeletExtraArgs:
+         node-labels: "ingress-ready=true"
+         authorization-mode: "AlwaysAllow"
+ - role: worker
+   kubeadmConfigPatches:
+   - |
+     kind: JoinConfiguration
+     nodeRegistration:
+       kubeletExtraArgs:
+         node-labels: "ingress-ready=true"
+         authorization-mode: "AlwaysAllow"
+ - role: worker
+   kubeadmConfigPatches:
+   - |
+     kind: JoinConfiguration
+     nodeRegistration:
+       kubeletExtraArgs:
+         node-labels: "ingress-ready=true"
+         authorization-mode: "AlwaysAllow"
 EOT
-# kubectl cluster-info --context kind-dev
+kubectl cluster-info --context kind-dev
+
+export ADDRESS_PREFIX=$(docker network inspect kind | jq ".[0].IPAM.Config[0].Gateway" | sed -e 's/"//g' | awk -F. '{print $1 "." $2}')
+echo $ADDRESS_PREFIX
+
+cat coredns_configmap.yaml | sed "s/1.1.1.1/${ADDRESS_PREFIX}.255.252/" | kubectl apply -f -
+kubectl rollout restart -n kube-system deployment coredns
 
 . ~/.bashrc
 . ~/.profile
-#cat <<-EOT | kind create cluster --name production --config=-
-#kind: Cluster
-#apiVersion: kind.x-k8s.io/v1alpha4
-#nodes:
-#- role: control-plane
-#  image: kindest/node:v1.20.0@sha256:b40ecf8bcb188f6a0d0f5d406089c48588b75edc112c6f635d26be5de1c89040
-#  kubeadmConfigPatches:
-#  - |
-#    kind: InitConfiguration
-#    nodeRegistration:
-#      kubeletExtraArgs:
-#        node-labels: "ingress-ready=true"
-#  extraPortMappings:
-#  - containerPort: 80
-#    hostPort: 9080
-#    protocol: TCP
-#  - containerPort: 443
-#    hostPort: 9443
-#    protocol: TCP
-#EOT
-#kubectl cluster-info --context kind-production
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.5/manifests/namespace.yaml
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.5/manifests/metallb.yaml
-# On first install only
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.10.2/manifests/namespace.yaml
 kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
-export address_prefix=$(docker network inspect kind | jq ".[0].IPAM.Config[0].Gateway" | sed -e 's/"//g' | awk -F. '{print $1 "." $2}')
-echo $address_prefix
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.10.2/manifests/metallb.yaml
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: ConfigMap
@@ -211,7 +245,7 @@ data:
     - name: default
       protocol: layer2
       addresses:
-      - $address_prefix.255.150-$address_prefix.255.250
+      - $ADDRESS_PREFIX.255.150-$ADDRESS_PREFIX.255.250
 EOF
 # kubectl get all --all-namespaces
 echo "===================================================================="
@@ -220,6 +254,7 @@ echo "===================================================================="
 
 ## Install ISTIO
 yes | istioctl install --set profile=demo
+kubectl label namespace default istio-injection=enabled
 
 export GITLAB_TOKEN=$(cat ~/.logins/gl)
 export GITLAB_USER=$(whoami)
