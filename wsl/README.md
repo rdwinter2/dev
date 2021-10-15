@@ -478,16 +478,29 @@ EOF
 # /etc/resolv.conf disappears after every reboot
 # since we have genie start systemd via a Windows scheduled task
 # use systemd to run a script to put /etc/resolv.conf back
+cat <<EOF > /usr/local/bin/create_etc_resolv.sh
+#!/bin/bash
+cat <<EOF_resolv >> /etc/resolv.conf
+nameserver 1.1.1.1
+EOF_resolv
+EOF
+chmod a+x /usr/local/bin/create_etc_resolv.sh
+
+cat <<EOF > /etc/systemd/system/create_etc_resolv.service
 [Unit]
 Description=Run once
 After=local-fs.target
 After=network.target
-#After=XXX
 
 [Service]
-ExecStart=/path/to/run/once/script.sh
+ExecStart=/usr/local/bin/create_etc_resolv.sh
 RemainAfterExit=true
 Type=oneshot
 
 [Install]
 WantedBy=multi-user.target
+EOF
+
+genie -s
+systemctl enable create_etc_resolv.service
+systemctl start create_etc_resolv.service
