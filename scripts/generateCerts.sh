@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-step_tag=0.17.2
+step_tag=0.17.6
 dir=$HOME/.certs
 mkdir -p $dir
 chmod 700 $dir
@@ -47,18 +47,24 @@ step certificate create 'example.com wildcard' \
 
 [[ -f $dir/client_passwd ]] || \
 echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1) > $dir/client_passwd
-[[ -f $dir/client.crt ]] || \
+[[ -f $dir/client.csr ]] || \
 docker run -it --rm --user=$(id -u):$(id -g) -v $dir:/home/step smallstep/step-cli:${step_tag} bash -c " \
 step certificate create 'Client Certificate' \
-  client.crt client.key \
-  --profile=leaf \
-  --ca=intermediate_ca.crt \
-  --ca-key=intermediate_ca.key \
-  --ca-password-file=intermediateCA_passwd \
+  client.csr client.key \
+  --csr \
   --password-file=client_passwd \
-  --not-after 2160h \
   --no-password \
   --insecure \
+"
+
+[[ -f $dir/client.crt ]] || \
+docker run -it --rm --user=$(id -u):$(id -g) -v $dir:/home/step smallstep/step-cli:${step_tag} bash -c " \
+step certificate sign \
+  client.csr intermediate_ca.crt intermediate_ca.key \
+  --profile=leaf \
+  --password-file=intermediateCA_passwd \
+  --not-after 2160h 
+  > client.crt \
 "
 
 [[ -f $dir/client.p12 ]] || \
