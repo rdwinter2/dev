@@ -1,5 +1,5 @@
 #!/bin/bash
-# To run 
+# To run
 # curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
 echo "Running script... 🚀"
 #sudo apt-key adv --keyserver keyring.debian.org --recv-keys 7EA0A9C3F273FCD8
@@ -117,14 +117,14 @@ sudo apt-get install ./octant_${octant_vers}_Linux-64bit.deb
 curl -fsSL -O "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
 sudo install --mode=755 --owner=root ./kubectl /usr/local/bin
 curl -fsSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
-curl -fsSL https://github.com/jenkins-x/jx-cli/releases/download/$(curl -s https://api.github.com/repos/jenkins-x/jx-cli/releases/latest | jq '.tag_name' | sed 's/"//g')/jx-cli-linux-amd64.tar.gz | tar xzv 
+curl -fsSL https://github.com/jenkins-x/jx-cli/releases/download/$(curl -s https://api.github.com/repos/jenkins-x/jx-cli/releases/latest | jq '.tag_name' | sed 's/"//g')/jx-cli-linux-amd64.tar.gz | tar xzv
 sudo install --mode=755 --owner=root ./jx /usr/local/bin
 VERSION=$(curl -fsSL "https://api.github.com/repos/kubernetes-sigs/kind/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-)
 curl -fsSL -o ./kind https://github.com/kubernetes-sigs/kind/releases/download/v${VERSION}/kind-linux-amd64
 sudo install --mode=755 --owner=root ./kind /usr/local/bin
 rm -f ./kind
 VERSION=$(curl -fsSL "https://api.github.com/repos/derailed/k9s/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | cut -c2-)
-curl -fsSL https://github.com/derailed/k9s/releases/download/v${VERSION}/k9s_Linux_x86_64.tar.gz | tar xzf - 
+curl -fsSL https://github.com/derailed/k9s/releases/download/v${VERSION}/k9s_Linux_x86_64.tar.gz | tar xzf -
 sudo install --mode=755 --owner=root ./k9s /usr/local/bin
 yes | rm -f {k9s,LICENSE,README.md}
 sudo curl -fSL -o "/usr/local/bin/tk" "https://github.com/grafana/tanka/releases/download/v0.13.0/tk-linux-amd64"
@@ -150,7 +150,7 @@ chmod 600 ~/.ansible/.vault_pass
 . ~/.bashrc
 VERSION=$(curl -fsSL "https://api.github.com/repos/istio/istio/releases" | jq '.[].tag_name' | sed 's/"//g' | grep -v "\-alpha\|\-beta\|\-rc" | sort --version-sort | tail -1)
 curl -fsSL https://github.com/istio/istio/releases/download/${VERSION}/istio-${VERSION}-linux-amd64.tar.gz | sudo tar -xzf - --directory /opt
-sudo ln -s /opt/istio-${VERSION} /opt/istio
+sudo ln --symbolic --force --no-dereference /opt/istio-${VERSION} /opt/istio
 sudo chmod o+rx /opt/istio /opt/istio/bin /opt/istio/tools
 sudo chmod o+r /opt/istio/manifest.yaml
 export PATH="$PATH:/opt/istio/bin"
