@@ -1,0 +1,18 @@
+---
+version: "3"
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:1.10.0
+    container_name: uptime-kuma
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      - UMASK_SET=022  # optional
+      - NODE_EXTRA_CA_CERTS=/certs/ca-bundle.pem
+    volumes:
+      - ./data:/app/data
+      - /usr/local/share/ca-certificates:/certs:ro
+    ports:
+        - 3001:3001
+    restart: unless-stopped

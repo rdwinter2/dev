@@ -37,7 +37,7 @@ curl -LsSf https://raw.githubusercontent.com/rdwinter2/dev/main/setup.sh | bash
 3. Add the public rsa ssh key to Google Cloud Platform (GCP).
 4. Install gcloud in WSL and run `gcloud init`.
 5. Go to the GCP GUI and go though the steps to create a VM. Capture the gcloud command and save it at secrets/gcloud.sh.
-6. 
+6.
 
 
 ## Prerequisites to be done in WSL2
@@ -56,7 +56,7 @@ Configure your default setting for your VSCode terminal to be zsh.
 ```bash
 sudo apt-get install -yqq zsh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-sudo apt-get install -yqq git 
+sudo apt-get install -yqq git
 git config --global user.email "rdwinter2@gmail.com"
 git config --global user.name "Robert D. Winter, 2nd"
 git config --global core.autocrlf input
@@ -120,13 +120,13 @@ x=$(sleep 600; yes | gcloud compute instances delete instance-1 --zone=us-centra
 
 ## Setup
 
-Create an offline X.509 Certificate Authority on Windows Subsystem for Linux (WSL). 
+Create an offline X.509 Certificate Authority on Windows Subsystem for Linux (WSL).
 
 ```
 scripts/generateCerts.sh
 ```
 
-You can view your certificates with 
+You can view your certificates with
 
 ```
 step_tag=0.17.1
@@ -245,7 +245,7 @@ From Windows Powershell copy the keys to a Windows folder.
 cp \\wsl$\Ubuntu\home\<user>\.ssh\id_rsa* C:\Users\<user>\.ssh
 ```
 
-Add your public ssh key, `~/.ssh/id_rsa.pub`, to Compute Engine -> Metadata -> SSH Keys. 
+Add your public ssh key, `~/.ssh/id_rsa.pub`, to Compute Engine -> Metadata -> SSH Keys.
 
 ![Add SSH Keys](media/add_SSH_Keys.png)
 
@@ -262,7 +262,7 @@ Host <VM name>
     StrictHostKeyChecking=no
 ```
 
-Then *Remote-SSH: Connect to Host...*. Install extnsions *Resource Monitor*, 
+Then *Remote-SSH: Connect to Host...*. Install extnsions *Resource Monitor*,
 
 ```bash
 curl -LsSf https://gist.githubusercontent.com/rdwinter2/68809acd5e35f42c9319dddd316ff054/raw/d1d2da72f4924482bbbd0fb5d25bf4fcc7cdf246/debian_kind.sh | bash
@@ -315,7 +315,7 @@ docker exec -it nexus sh -c "cat /nexus-data/admin.password;echo"
 
 ```
 
-## On Windows 
+## On Windows
 
 Create a ssh key \
 
@@ -329,7 +329,7 @@ If the External IP of the GCP VM changes:
 2. Modify the wildcard DNS in OpnSense
 3. Update the .ssh config file for VSCode.
 
-## SSH Config 
+## SSH Config
 
 On Windows
 
@@ -361,7 +361,7 @@ Host instance-1
 ## Set GitLab root password
 
 ```bash
-docker exec -i --tty=false gitlab sh <<-EOF 
+docker exec -i --tty=false gitlab sh <<-EOF
 gitlab-rails console -e production <<- EOT
 user = User.where(id: 1).first
 user.password = 'my_secret_pass'
@@ -396,8 +396,8 @@ gcloud compute instances create instance-1 \
   --boot-disk-size=256GB \
   --preemptible
 
-if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))  
-{  
+if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
+{
   $arguments = "& '" +$myinvocation.mycommand.definition + "'"
   Start-Process powershell -Verb runAs -ArgumentList $arguments
   Break
@@ -405,7 +405,7 @@ if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 
 docker run --rm httpd:2.4-alpine htpasswd -nbB admin "password" | cut -d ":" -f 2 | sed 's/\$/$$/g'
 
-kns() { 
+kns() {
     namespace=$1
     kubectl config set-context --current --namespace=$1
 }
@@ -488,7 +488,7 @@ services:
       - traefik
     labels:
       traefik.enable: true
-      traefik.http.routers.whoami.rule: Host(`${HOST_NAME}.${DOMAINNAME}`) && PathPrefix(`/whoami`) 
+      traefik.http.routers.whoami.rule: Host(`${HOST_NAME}.${DOMAINNAME}`) && PathPrefix(`/whoami`)
       traefik.http.routers.whoami.service: whoami
       traefik.http.routers.whoami.entrypoints: https
       traefik.http.routers.whoami.middlewares: whoami
@@ -510,4 +510,12 @@ tar xvf ./node_exporter-${VERSION}.linux-amd64.tar.gz
 # sudo cp -r ./gh_${VERSION}_linux_amd64/share/man/man1/* /usr/share/man/man1/
 # rm -rf ./gh_${VERSION}_linux_amd64*
 
+```
+
+## Notes
+
+To find where the docker compose what run out of
+
+```sh
+docker container inspect nexus | grep com.docker.compose.project.working_dir
 ```

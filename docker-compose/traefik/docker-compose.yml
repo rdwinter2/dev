@@ -3,9 +3,9 @@ version: "3.8"
 services:
   traefik:
     container_name: traefik
-    hostname: ${TRAEFIK}.${DOMAINNAME}
-    domainname: ${DOMAINNAME}
-    image: ${REGISTRY}/library/traefik:${TAG}@sha256:${DIGEST}
+    hostname: traefik
+    domainname: localhost
+    image: traefik:v2.5.3
     restart: unless-stopped
     command: # CLI arguments
       - --ping=false
@@ -13,7 +13,7 @@ services:
       - --global.sendAnonymousUsage=false
       - --entrypoints.http.address=:80
       - --entrypoints.https.address=:443
-    #  - --entrypoints.https.http.tls.options=tls-opts@file
+      - --entrypoints.https.http.tls.options=tls-opts@file
       - --entrypoints.http.forwardedHeaders.insecure
     #  - --entrypoints.step-ca.address=:8443
       - --api=true
@@ -49,7 +49,7 @@ services:
       #- --tls.stores.default.defaultCertificate.keyFile=/certs/${DOMAINNAME}.key
     environment:
     #  - LEGO_CA_CERTIFICATES=/rootCA/${ROOT_CA_CERT}
-      - TZ=${TZ}
+      - TZ=Etc/UTC
     ports:
       - "80:80"
       - "443:443"
@@ -67,17 +67,17 @@ services:
   #    - ${COREDNS_IP}
   #  dns_search: ${DOMAINNAME}
     labels:
-      - "traefik.enable=true"
+      - "docker-compose-dir=${PWD}"
       #- "traefik.http.routers.http-catchall.entrypoints=http"
       #- "traefik.http.routers.http-catchall.rule=HostRegexp(`{any:.+}`)"
       #- "traefik.http.routers.http-catchall.middlewares=https_redirect"
       #- "traefik.http.middlewares.https_redirect.redirectscheme.scheme=https"
       #- "traefik.http.middlewares.https_redirect.redirectscheme.permanent=true"
       #traefik dashboard rules
-      - "traefik.http.routers.dashboard.entrypoints=http"
-      - "traefik.http.routers.dashboard.rule=(Host(`${TRAEFIK}.${DOMAINNAME}`) || Host(`localhost`)) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
+      #- "traefik.http.routers.dashboard.entrypoints=http"
+      #- "traefik.http.routers.dashboard.rule=(Host(`${TRAEFIK}.${DOMAINNAME}`) || Host(`localhost`)) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
     #  - "traefik.http.routers.dashboard.middlewares=chain-no-auth@file"
-      - "traefik.http.routers.dashboard.service=api@internal"
+      #- "traefik.http.routers.dashboard.service=api@internal"
       #- "traefik.http.routers.dashboard.tls=true"
     #  - "traefik.http.routers.dashboard.tls.certResolver=step"
 

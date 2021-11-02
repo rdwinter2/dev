@@ -180,7 +180,7 @@ sudo pip3 install -U Commitizen
 curl -s https://raw.githubusercontent.com/zaquestion/lab/master/install.sh | sudo bash
 
 
-## oh-my-zsh 
+## oh-my-zsh
 
 runs less command with -R (repaint). You can disable this behavior by adding the following line at the end of your ~/.zshrc
 
@@ -188,16 +188,40 @@ unset LESS;
 
 ## Minikube on WSL with HyperV
 
-Windows 
+Windows
 
 Chocolatey
 
 https://mudrii.medium.com/kubernetes-local-development-with-minikube-on-hyper-v-windows-10-75f52ad1ed42
 
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString(‘https://chocolatey.org/install.ps1'))
+Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 
 choco upgrade chocolatey -y
+choco install lxrunoffline -y
+
+
+download https://lxrunoffline.apphb.com/download/Fedora/rawhide
+
+LxRunOffline i -n Fedora -d D:\wsl\Fedora -r . -f C:\Users\<user>\Downloads\fedora-Rawhide.20210930-x86_64.tar.xz -s
+
+
+download https://lxrunoffline.apphb.com/download/Debian/Bullseye
+
+LxRunOffline i -n Debian-Bullseye -d D:\wsl\Debian-Bullseye -f C:\Users\rdwin\Downloads\rootfs.tar.xz -s
+wsl -d Debian-Bullseye
+apt update
+apt-get install -y sudo locales
+localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+apt upgrade
+adduser rdwinter2
+mkdir /etc/sudoers.d
+cat <<EOF > /etc/sudoers.d/rdwinter2
+rdwinter2 ALL=(ALL:ALL) NOPASSWD: ALL
+EOF
+LxRunOffline su -n Debian-Bullseye -v 1000
+
+
 choco install kubernetes-cli -y
 choco install minikube -y
 choco install kind -y
@@ -229,7 +253,7 @@ kubectl version
 kubectl cluster-info
 kubectl api-versions
 
-kubectl run hello-minikube — image=k8s.gcr.io/echoserver:1.4 — port=8080 
+kubectl run hello-minikube — image=k8s.gcr.io/echoserver:1.4 — port=8080
 kubectl expose deployment hello-minikube — type=NodePort
 kubectl get services
 kubectl get deploy
@@ -240,7 +264,7 @@ minikube ip
 
 ```powershell
 Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
-minikube start --driver=hyperv 
+minikube start --driver=hyperv
 minikube config set driver hyperv
 
 minikube stop
@@ -305,7 +329,7 @@ Get-VM | Get-VMNetworkAdapter | Connect-VMNetworkAdapter –SwitchName “NAT"
 
 
 minikube delete --all --purge
-minikube start --driver=hyperv --cpus=4 --memory=6144 
+minikube start --driver=hyperv --cpus=4 --memory=6144
 
 
 Set-NetIPInterface -ifAlias "vEthernet (WSL)" -Forwarding Enabled
@@ -346,7 +370,7 @@ wget --content-disposition \
   "https://gist.githubusercontent.com/djfdyuruiry/6720faa3f9fc59bfdf6284ee1f41f950/raw/952347f805045ba0e6ef7868b18f4a9a8dd2e47a/install-sg.sh"
 
 
-  rdwinter2@DESKTOP-72MKB01:/tmp$ cat install-sg.sh 
+  rdwinter2@DESKTOP-72MKB01:/tmp$ cat install-sg.sh
 #! /usr/bin/env bash
 set -e
 
@@ -432,7 +456,7 @@ sudo apt-get update
 
 # WSL Debian
 
-# Smallstep 
+# Smallstep
 
 wget https://dl.step.sm/gh-release/cli/docs-cli-install/v0.17.6/step-cli_0.17.6_amd64.deb
 sudo dpkg -i step-cli_0.17.6_amd64.deb
@@ -457,7 +481,7 @@ docker run \
   -e DOCKER_STEPCA_INIT_DNS_NAMES=localhost,$(hostname -f),${STEP_CA_IP},${STEP_CA_SERVICE_NAME},${STEP_CA_SERVICE_NAME}.${DOMAINNAME}
   --entrypoint /usr/local/bin/entrypoint-step-ca.sh \
   smallstep/step-ca:0.17.4 \
-  
+
 
 DNSNAMES=$1
 CA_SERVER=$2
@@ -471,7 +495,7 @@ echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1) > .secret
 step ca init --root=$HOME/.certs/intermediate_ca.crt --key=intermediate_ca.key --deployment-type=standalone --name=subordinate-ca --dns=localhost --dns=$(hostname -f) --provisioner=admin --address=:443 --password-file=.secrets/password
 
 # get control over /etc/resolv.conf
-cat <<EOF >> /etc/wsl.conf 
+cat <<EOF >> /etc/wsl.conf
 [network]
 generateResolvConf = false
 EOF

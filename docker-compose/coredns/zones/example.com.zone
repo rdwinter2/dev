@@ -1,0 +1,20 @@
+$ORIGIN example.com.
+@	IN	SOA	coredns.example.com. zone-admin.example.com. (
+	2021082919	; serial number
+	3600		; time to refresh
+	600 		; time to retry
+	604800 	    ; time to expire
+	1800		; minimum TTL
+)
+traefik         IN A 192.168.90.254
+subordinate-ca  IN A 192.168.90.253
+nexus           IN A 192.168.90.254
+repo            IN A 192.168.90.254
+gitlab          IN A 192.168.90.254
+registry        IN A 192.168.90.254
+pages           IN A 192.168.90.254
+portainer       IN A 192.168.90.254
+whoami          IN A 192.168.90.254
+grafana         IN A 192.168.90.254
+*.pages         IN A 192.168.90.254
+*.kind          IN A 192.168.90.254

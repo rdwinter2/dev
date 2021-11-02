@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  coredns:
+    container_name: coredns
+    hostname: ${COREDNS_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/coredns/coredns:${COREDNS_TAG}@sha256:${COREDNS_DIGEST}
+    restart: unless-stopped
+    expose:
+      - "53"
+      - "53/udp"
+    volumes:
+      - ./Corefile:/Corefile
+      - "./config:/etc/coredns"
+      - ${COREDNS_GIT_SYNC_DIR}:/coreDNS
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    networks:
+      kind:
+        ipv4_address: ${COREDNS_IP}
+
+networks:
+  kind:
+    external:
+      name: kind

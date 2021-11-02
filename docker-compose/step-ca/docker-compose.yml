@@ -30,16 +30,16 @@ services:
     entrypoint: ["bash", "/usr/local/bin/entrypoint-step-ca.sh", "$DNSNAMES", "$CA_SERVER", "$RESOLVER", "$SUBORDINATE_CERT", "$SUBORDINATE_KEY", "$SUB_SIGNED_BY_CERT"]
     stop_grace_period: 30s
     networks:
-      traefik:
+      kind:
         ipv4_address: ${STEP_CA_IP}
     dns:
       - ${COREDNS_IP}
     dns_search: ${DOMAINNAME}
 
 networks:
-  traefik:
-    external:
-      name: traefik
+  kind:
+    external: true
+    name: kind
 
 volumes:
   step-ca:

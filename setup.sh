@@ -5,7 +5,7 @@ echo "Running script... 🚀"
 #sudo apt-key adv --keyserver keyring.debian.org --recv-keys 7EA0A9C3F273FCD8
 curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
 sudo apt-get update -yqq
-sudo apt-get install -yqq apt-transport-https bash-completion ca-certificates dnsutils gnupg-agent python3 python3-pip python3-jinja2 python3-yaml python3-cryptography software-properties-common wget jq jid build-essential gcc htop unzip zsh
+sudo apt-get install -yqq acl apt-transport-https bash-completion ca-certificates dnsutils gnupg-agent python3 python3-pip python3-jinja2 python3-yaml python3-cryptography software-properties-common wget jq jid build-essential gcc htop unzip zsh
 sudo ln -s /usr/bin/python3 /usr/bin/python
 ssh-keygen -o -a 100 -t ed25519 -f ~/.ssh/id_ed25519 -N "" -C "$(whoami)@$(hostname)"
 # use copied key instead
@@ -230,9 +230,9 @@ kubectl rollout restart -n kube-system deployment coredns
 
 . ~/.bashrc
 . ~/.profile
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.10.2/manifests/namespace.yaml
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.10.3/manifests/namespace.yaml
 kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.10.2/manifests/metallb.yaml
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.10.3/manifests/metallb.yaml
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: ConfigMap

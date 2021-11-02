@@ -3,6 +3,89 @@ version: "3.8"
 services:
   nexus:
     container_name: nexus
+    image: ${REGISTRY}/sonatype/nexus3:${NEXUS_TAG}@sha256:${NEXUS_DIGEST}
+    volumes:
+      - "nexus-data:/nexus-data"
+      - "./files/nexus.properties:/nexus-data/etc/nexus.properties"
+      - "${LICENSE_FILE}:/nexus-data/license.lic"
+      - "./deploy:/opt/sonatype/nexus/deploy/"
+    environment:
+      - INSTALL4J_ADD_VM_PARAMS=-Xms2048m -Xmx2g -XX:MaxDirectMemorySize=3g
+    ports:
+      - 8081:8081
+    restart: always
+
+volumes:
+  nexus-data:
+    external: true
+    
+  nexus:
+    container_name: nexus
+    hostname: ${NEXUS_SERVICE_NAME}.localhost
+    domainname: localhost
+    image: ${REGISTRY}/sonatype/nexus3:${NEXUS_TAG}@sha256:${NEXUS_DIGEST}
+    depends_on:
+      - traefik
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nexus.rule=Host(`${NEXUS_SERVICE_NAME}.localdomain`,`${NEXUS_SERVICE_NAME}.localhost`,`${NEXUS_SERVICE_NAME}`)"
+      - "traefik.http.routers.nexus.service=nexus"
+      - "traefik.http.routers.nexus.entrypoints=https"
+      - "traefik.http.routers.nexus.tls=true"
+      - "traefik.http.routers.nexus.tls.certResolver=step"
+      - "traefik.http.services.nexus.loadbalancer.server.port=8081"
+      # Middlewares
+      - "traefik.http.routers.nexus.middlewares=chain-no-auth@file" # No Authentication
+    volumes:
+      - nexus-data:/nexus-data
+      - ../deploy:/opt/sonatype/nexus/deploy/
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    environment:
+      - INSTALL4J_ADD_VM_PARAMS=-Xms2048m -Xmx2g -XX:MaxDirectMemorySize=3g
+    networks:
+      kind:
+        ipv4_address: ${NEXUS_IP}
+
+  nexus:
+    container_name: nexus
+    hostname: ${NEXUS_SERVICE_NAME}.${DOMAINNAME}
+    domainname: ${DOMAINNAME}
+    image: ${REGISTRY}/sonatype/nexus3:${NEXUS_TAG}@sha256:${NEXUS_DIGEST}
+    depends_on:
+      - traefik
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nexus.entrypoints=https"
+      - "traefik.http.routers.nexus.rule=Host(`${NEXUS_SERVICE_NAME}.${DOMAINNAME}`)"
+      - "traefik.http.routers.nexus.service=nexus"
+      - "traefik.http.routers.nexus.tls=true"
+      - "traefik.http.routers.nexus.tls.certResolver=step"
+      - "traefik.http.services.nexus.loadbalancer.server.port=8081"
+      - "traefik.http.routers.nexus.middlewares=chain-no-auth@file"
+      #- "traefik.http.routersnexus.middlewares=nexus-redirect@docker,chain-oauth@file"
+      #- "traefik.http.routers.nexus-http.rule=Host(`${NEXUS_SERVICE_NAME}.${DOMAINNAME}`)"
+      #- "traefik.http.routers.nexus-http.service=nexus-http"
+      #- "traefik.http.routers.nexus-http.entrypoints=http"
+      #- "traefik.http.services.nexus-http.loadbalancer.server.port=8081"
+      ## Update to have priority greater than http-catchall rule.
+      #- "traefik.http.routers.nexus-http.priority=27"
+    volumes:
+      - nexus-data:/nexus-data
+      - ./deploy:/opt/sonatype/nexus/deploy/
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    environment:
+      - INSTALL4J_ADD_VM_PARAMS=-Xms2048m -Xmx2g -XX:MaxDirectMemorySize=3g
+    networks:
+      traefik:
+        ipv4_address: ${NEXUS_IP}
+    dns:
+      - ${COREDNS_IP}
+    dns_search: ${DOMAINNAME}
+
+  nexus:
+    container_name: nexus
     hostname: ${NEXUS_SERVICE_NAME}.${DOMAINNAME}
     domainname: ${DOMAINNAME}
     image: ${REGISTRY}/sonatype/nexus3:${NEXUS_TAG}@sha256:${NEXUS_DIGEST}

@@ -1,0 +1,11 @@
+http:
+  routers:
+    dashboard:
+      rule: "Host(`localhost`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
+      service: "api@internal"
+      entryPoints:
+        - "http"
+      #traefik dashboard rules
+    #  - "traefik.http.routers.dashboard.middlewares=chain-no-auth@file"
+      #- "traefik.http.routers.dashboard.tls=true"
+    #  - "traefik.http.routers.dashboard.tls.certResolver=step"
