@@ -63,7 +63,7 @@ step certificate sign \
   client.csr intermediate_ca.crt intermediate_ca.key \
   --profile=leaf \
   --password-file=intermediateCA_passwd \
-  --not-after 2160h 
+  --not-after 2160h
   > client.crt \
 "
 

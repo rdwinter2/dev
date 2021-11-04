@@ -3,6 +3,13 @@
 ```
 sudo su -
 cat <<EOF >> /etc/wsl.conf
+# Enable extra metadata options by default
+[automount]
+enabled = true
+root = /mnt/
+options = "metadata,umask=22,fmask=11"
+mountFsTab = false
+
 [network]
 generateResolvConf = false
 EOF
