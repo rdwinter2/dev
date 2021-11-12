@@ -3,9 +3,9 @@ version: "3.8"
 services:
   traefik:
     container_name: traefik
-    hostname: traefik
-    domainname: localhost
-    image: traefik:v2.5.3
+    hostname: ${TRAEFIK_SERVICE_NAME}
+    domainname: ${DOMAINNAME}
+    image: ${TRAEFIK_REGISTRY}/${TRAEFIK_IMAGE}:${TRAEFIK_TAG}@sha256:${TRAEFIK_DIGEST}
     restart: unless-stopped
     command: # CLI arguments
       - --ping=false
@@ -14,10 +14,8 @@ services:
       - --entrypoints.http.address=:80
       - --entrypoints.https.address=:443
       - --entrypoints.https.http.tls.options=tls-opts@file
-      - --entrypoints.http.forwardedHeaders.insecure
-    #  - --entrypoints.step-ca.address=:8443
+      #- --entrypoints.http.forwardedHeaders.insecure
       - --api=true
-      - --api.insecure=true
       - --api.dashboard=true
       # - --serversTransport.insecureSkipVerify=true
       - --log=true

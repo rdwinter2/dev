@@ -45,9 +45,9 @@ if [[ -n "$FIRST_TIME" && -n "${SUBORDINATE_CERT}" ]]; then
   echo "Editing $CONFIGPATH to fix low ram issue"
   # Set certificate validity period
   #echo $(cat config/ca.json | /usr/bin/jq --arg DEFAULT_CERT_VALIDITY "$DEFAULT_CERT_VALIDITY" --arg MAX_CERT_VALIDITY "$MAX_CERT_VALIDITY" -r '
-  #                              .authority.provisioners[[.authority.provisioners[] 
-  #                              | .name=="acme"] 
-  #                              | index(true)].claims 
+  #                              .authority.provisioners[[.authority.provisioners[]
+  #                              | .name=="acme"]
+  #                              | index(true)].claims
   #                              |= (. + {"maxTLSCertDuration":$MAX_CERT_VALIDITY,"defaultTLSCertDuration":$DEFAULT_CERT_VALIDITY})') > config/ca.json
   sed -i 's/"type": "badger"/"type": "badgerV2","badgerFileLoadingMode": "FileIO"/' config/ca.json
   #        "db": {
@@ -69,7 +69,7 @@ echo "step ca bootstrap --ca-url=${CA_SERVER} --fingerprint=$(step certificate f
 echo "step ca root root_ca.crt --ca-url ${CA_SERVER} --fingerprint $(step certificate fingerprint /home/step/certs/root_ca.crt)"
 echo "step ca health --ca-url https://localhost:8443 --root $(step path)certs/root_ca.crt"
 
-#/usr/local/bin/step-ca --password-file $PASSWORDPATH --resolver $RESOLVER $CONFIGPATH 
+#/usr/local/bin/step-ca --password-file $PASSWORDPATH --resolver $RESOLVER $CONFIGPATH
 cmd="/usr/local/bin/step-ca --password-file $PASSWORDPATH --resolver $RESOLVER $CONFIGPATH"
 echo "Starting step-ca with cmd: $cmd"
 exec /bin/sh -c "$cmd"
